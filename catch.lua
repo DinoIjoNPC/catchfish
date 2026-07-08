@@ -1,6 +1,6 @@
 -- ============================================
 -- CATCH A ANOMALI FISH v8.0 ULTIMATE
--- STYLE V8 + SETTINGS + NOCLIP + AUTO RESIZE
+-- STYLE LAMA + SEMUA FITUR + AUTO RESIZE (tanpa DPI)
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -15,34 +15,24 @@ local character = player.Character or player.CharacterAdded:Wait()
 local giveToolEvent = ReplicatedStorage:WaitForChild("GiveTool")
 
 -- ============================================
--- AUTO RESIZE (Mobile/PC)
+-- AUTO RESIZE (tanpa DPI)
 -- ============================================
 local viewport = Workspace.CurrentCamera.ViewportSize
 local isMobile = UserInputService.TouchEnabled
-local isTablet = viewport.X < 800 and viewport.X > 400
-local isPhone = viewport.X <= 400
+local isPhone = viewport.X <= 450
 
-local GUI_W, GUI_H
-local FONT_MAIN, FONT_SMALL, FONT_TITLE
-
-if isPhone then
-    GUI_W, GUI_H = 300, 370
-    FONT_MAIN, FONT_SMALL, FONT_TITLE = 10, 8, 11
-elseif isTablet then
-    GUI_W, GUI_H = 340, 400
-    FONT_MAIN, FONT_SMALL, FONT_TITLE = 12, 10, 13
-else
-    GUI_W, GUI_H = 320, 390
-    FONT_MAIN, FONT_SMALL, FONT_TITLE = 11, 9, 12
-end
+local GUI_W = isPhone and 280 or 320
+local GUI_H = isPhone and 360 or 400
+local FONT_MAIN = isPhone and 10 or 11
+local FONT_SMALL = isPhone and 8 or 9
+local FONT_TITLE = isPhone and 11 or 12
 
 local function scale(val)
-    local base = isPhone and 0.7 or (isTablet and 0.85 or 1)
-    return math.floor(val * base)
+    return isPhone and math.floor(val * 0.7) or val
 end
 
 -- ============================================
--- DETECT REMOTES FOR MONEY
+-- DETECT REMOTES
 -- ============================================
 local remoteEvents = {}
 local remoteFunctions = {}
@@ -84,7 +74,7 @@ local noclipActive = false
 local noclipConnection = nil
 
 -- ============================================
--- GUI
+-- GUI STYLE LAMA
 -- ============================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatchAnomaliGUI"
@@ -100,19 +90,6 @@ mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 mainFrame.Active = true
-
--- UIStroke
-local uiStroke = Instance.new("UIStroke")
-uiStroke.Color = Color3.fromRGB(255, 255, 255)
-uiStroke.Thickness = 1
-uiStroke.Transparency = 0.4
-uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-uiStroke.Parent = mainFrame
-
--- Corner
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
-corner.Parent = mainFrame
 
 -- Shadow
 local shadow = Instance.new("ImageLabel")
@@ -253,8 +230,8 @@ for i, data in ipairs(tabData) do
     
     local line = Instance.new("Frame")
     line.Name = "Indicator"
-    line.Size = UDim2.new(0.6, 0, 0, 2)
-    line.Position = UDim2.new(0.2, 0, 1, -2)
+    line.Size = UDim2.new(1, 0, 0, 2)
+    line.Position = UDim2.new(0, 0, 1, -2)
     line.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
     line.BackgroundTransparency = 1
     line.Parent = btn
