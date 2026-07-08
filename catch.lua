@@ -1,6 +1,6 @@
 -- ============================================
--- CATCH A ANOMALI FISH v11.0
--- UI STROKE | AUTO RESIZE | FIXED DISPLAY
+-- CATCH A ANOMALI FISH v8.0 ULTIMATE
+-- STYLE V8 + SETTINGS + NOCLIP + AUTO RESIZE
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -26,14 +26,14 @@ local GUI_W, GUI_H
 local FONT_MAIN, FONT_SMALL, FONT_TITLE
 
 if isPhone then
-    GUI_W, GUI_H = 280, 340
+    GUI_W, GUI_H = 300, 370
     FONT_MAIN, FONT_SMALL, FONT_TITLE = 10, 8, 11
 elseif isTablet then
-    GUI_W, GUI_H = 340, 380
+    GUI_W, GUI_H = 340, 400
     FONT_MAIN, FONT_SMALL, FONT_TITLE = 12, 10, 13
 else
-    GUI_W, GUI_H = 380, 420
-    FONT_MAIN, FONT_SMALL, FONT_TITLE = 14, 11, 15
+    GUI_W, GUI_H = 320, 390
+    FONT_MAIN, FONT_SMALL, FONT_TITLE = 11, 9, 12
 end
 
 local function scale(val)
@@ -42,7 +42,7 @@ local function scale(val)
 end
 
 -- ============================================
--- DETECT REMOTES
+-- DETECT REMOTES FOR MONEY
 -- ============================================
 local remoteEvents = {}
 local remoteFunctions = {}
@@ -84,66 +84,100 @@ local noclipActive = false
 local noclipConnection = nil
 
 -- ============================================
--- CREATE GUI
+-- GUI
 -- ============================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AnomaliGUI"
+screenGui.Name = "CatchAnomaliGUI"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "Main"
+mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, GUI_W, 0, GUI_H)
 mainFrame.Position = UDim2.new(0.5, -GUI_W/2, 0.5, -GUI_H/2)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
+mainFrame.Active = true
 
--- UIStroke (Border Putih)
+-- UIStroke
 local uiStroke = Instance.new("UIStroke")
 uiStroke.Color = Color3.fromRGB(255, 255, 255)
-uiStroke.Thickness = 1.5
-uiStroke.Transparency = 0.3
+uiStroke.Thickness = 1
+uiStroke.Transparency = 0.4
 uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 uiStroke.Parent = mainFrame
 
 -- Corner
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
+corner.CornerRadius = UDim.new(0, 6)
 corner.Parent = mainFrame
 
 -- Shadow
 local shadow = Instance.new("ImageLabel")
-shadow.Size = UDim2.new(1, 30, 1, 30)
-shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.Size = UDim2.new(1, 20, 1, 20)
+shadow.Position = UDim2.new(0, -10, 0, -10)
 shadow.BackgroundTransparency = 1
 shadow.Image = "rbxassetid://1316043491"
 shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.6
+shadow.ImageTransparency = 0.7
 shadow.ScaleType = Enum.ScaleType.Slice
 shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-shadow.ZIndex = 0
 shadow.Parent = mainFrame
 
 -- ============================================
--- DRAG
+-- DRAG SYSTEM
 -- ============================================
 local isDragging = false
-local dragStart, dragFrameStart
+local dragStart = nil
+local dragFrameStart = nil
 
-local function startDrag(input)
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        dragStart = input.Position
+        dragFrameStart = mainFrame.Position
+    end
+end)
+
+mainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false
+    end
+end)
+
+mainFrame.TouchBegan:Connect(function(touch)
     isDragging = true
-    dragStart = input.Position
+    dragStart = touch.Position
     dragFrameStart = mainFrame.Position
-end
+end)
 
-local function endDrag()
-    isDragging = false
-end
-
-local function moveDrag(input)
+mainFrame.TouchMoved:Connect(function(touch)
     if isDragging then
+        local delta = touch.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            dragFrameStart.X.Scale,
+            dragFrameStart.X.Offset + delta.X,
+            dragFrameStart.Y.Scale,
+            dragFrameStart.Y.Offset + delta.Y
+        )
+    end
+end)
+
+mainFrame.TouchEnded:Connect(function()
+    isDragging = false
+end)
+
+mainFrame.TouchCanceled:Connect(function()
+    isDragging = false
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+                       input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         mainFrame.Position = UDim2.new(
             dragFrameStart.X.Scale,
@@ -152,72 +186,32 @@ local function moveDrag(input)
             dragFrameStart.Y.Offset + delta.Y
         )
     end
-end
-
-mainFrame.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        startDrag(i)
-    end
-end)
-
-mainFrame.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        endDrag()
-    end
-end)
-
-mainFrame.TouchBegan:Connect(startDrag)
-mainFrame.TouchMoved:Connect(moveDrag)
-mainFrame.TouchEnded:Connect(endDrag)
-mainFrame.TouchCanceled:Connect(endDrag)
-
-UserInputService.InputChanged:Connect(function(i)
-    if isDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        moveDrag(i)
-    end
 end)
 
 -- ============================================
 -- TITLE BAR
 -- ============================================
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, scale(32))
-titleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+titleBar.Size = UDim2.new(1, 0, 0, scale(28))
+titleBar.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
-titleCorner.Parent = titleBar
-
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -50, 1, 0)
-titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.Size = UDim2.new(1, -40, 1, 0)
+titleText.Position = UDim2.new(0, 8, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "⚡ ANOMALI FISH"
+titleText.Text = "ANOMALI FISH"
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleText.TextSize = FONT_TITLE
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
 titleText.Parent = titleBar
 
--- Glow Line
-local glowLine = Instance.new("Frame")
-glowLine.Size = UDim2.new(1, 0, 0, 2)
-glowLine.Position = UDim2.new(0, 0, 1, -2)
-glowLine.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-glowLine.BorderSizePixel = 0
-glowLine.Parent = titleBar
-
-local glowCorner = Instance.new("UICorner")
-glowCorner.CornerRadius = UDim.new(0, 4)
-glowCorner.Parent = glowLine
-
--- Min Button
 local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, scale(26), 0, scale(26))
-minBtn.Position = UDim2.new(1, -scale(32), 0, scale(3))
-minBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+minBtn.Size = UDim2.new(0, scale(24), 0, scale(24))
+minBtn.Position = UDim2.new(1, -scale(28), 0, scale(2))
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 minBtn.BorderSizePixel = 0
 minBtn.Text = "−"
 minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -225,17 +219,13 @@ minBtn.TextSize = FONT_TITLE
 minBtn.Font = Enum.Font.GothamBold
 minBtn.Parent = titleBar
 
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 4)
-minCorner.Parent = minBtn
-
 -- ============================================
--- TAB BUTTONS
+-- TAB BUTTONS (5 Tab)
 -- ============================================
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, 0, 0, scale(32))
-tabContainer.Position = UDim2.new(0, 0, 0, scale(32))
-tabContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+tabContainer.Size = UDim2.new(1, 0, 0, scale(28))
+tabContainer.Position = UDim2.new(0, 0, 0, scale(28))
+tabContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 tabContainer.BorderSizePixel = 0
 tabContainer.Parent = mainFrame
 
@@ -250,42 +240,39 @@ local tabData = {
 
 for i, data in ipairs(tabData) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, scale(65), 1, -scale(4))
-    btn.Position = UDim2.new(0, scale(4) + (i-1) * scale(70), 0, scale(2))
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    btn.Name = data.id
+    btn.Size = UDim2.new(0, scale(56), 1, -scale(4))
+    btn.Position = UDim2.new(0, scale(4) + (i-1) * scale(60), 0, scale(2))
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     btn.BorderSizePixel = 0
     btn.Text = data.name
-    btn.TextColor3 = Color3.fromRGB(160, 160, 170)
+    btn.TextColor3 = Color3.fromRGB(180, 180, 180)
     btn.TextSize = FONT_SMALL
     btn.Font = Enum.Font.GothamSemibold
     btn.Parent = tabContainer
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = btn
-    
     local line = Instance.new("Frame")
+    line.Name = "Indicator"
     line.Size = UDim2.new(0.6, 0, 0, 2)
     line.Position = UDim2.new(0.2, 0, 1, -2)
-    line.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    line.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
     line.BackgroundTransparency = 1
-    line.BorderSizePixel = 0
     line.Parent = btn
     
     tabs[data.id] = {btn = btn, line = line}
 end
 
 -- ============================================
--- CONTENT
+-- CONTENT FRAME
 -- ============================================
 local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -scale(16), 1, -scale(72))
-contentFrame.Position = UDim2.new(0, scale(8), 0, scale(68))
+contentFrame.Size = UDim2.new(1, -scale(12), 1, -scale(68))
+contentFrame.Position = UDim2.new(0, scale(6), 0, scale(60))
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
 -- ============================================
--- TAB 1: FISH
+-- TAB 1: AUTO FISH (Dengan Speed Settings)
 -- ============================================
 local tab1 = Instance.new("Frame")
 tab1.Size = UDim2.new(1, 0, 1, 0)
@@ -294,9 +281,9 @@ tab1.Visible = false
 tab1.Parent = contentFrame
 
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, scale(170), 0, scale(34))
-toggleBtn.Position = UDim2.new(0.5, -scale(85), 0, scale(4))
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+toggleBtn.Size = UDim2.new(0, scale(160), 0, scale(30))
+toggleBtn.Position = UDim2.new(0.5, -scale(80), 0, scale(4))
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "▶ START FISH"
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -304,58 +291,54 @@ toggleBtn.TextSize = FONT_MAIN
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.Parent = tab1
 
-local togCorner = Instance.new("UICorner")
-togCorner.CornerRadius = UDim.new(0, 6)
-togCorner.Parent = toggleBtn
-
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -scale(10), 0, scale(20))
-statusLabel.Position = UDim2.new(0, scale(5), 0, scale(44))
+statusLabel.Size = UDim2.new(1, -scale(10), 0, scale(18))
+statusLabel.Position = UDim2.new(0, scale(5), 0, scale(40))
 statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "● Status: OFF"
-statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+statusLabel.Text = "Status: OFF"
+statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 statusLabel.TextSize = FONT_MAIN
 statusLabel.Font = Enum.Font.GothamSemibold
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = tab1
 
 local queueLabel = Instance.new("TextLabel")
-queueLabel.Size = UDim2.new(1, -scale(10), 0, scale(18))
-queueLabel.Position = UDim2.new(0, scale(5), 0, scale(66))
+queueLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+queueLabel.Position = UDim2.new(0, scale(5), 0, scale(60))
 queueLabel.BackgroundTransparency = 1
 queueLabel.Text = "Queue: 0/5 | Speed: 0.5s"
-queueLabel.TextColor3 = Color3.fromRGB(140, 140, 150)
+queueLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 queueLabel.TextSize = FONT_SMALL
 queueLabel.Font = Enum.Font.Gotham
 queueLabel.TextXAlignment = Enum.TextXAlignment.Left
 queueLabel.Parent = tab1
 
 local keyLabel = Instance.new("TextLabel")
-keyLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
-keyLabel.Position = UDim2.new(0, scale(5), 0, scale(86))
+keyLabel.Size = UDim2.new(1, -scale(10), 0, scale(14))
+keyLabel.Position = UDim2.new(0, scale(5), 0, scale(78))
 keyLabel.BackgroundTransparency = 1
-keyLabel.Text = "⌨ F"
-keyLabel.TextColor3 = Color3.fromRGB(80, 80, 90)
+keyLabel.Text = "F toggle"
+keyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
 keyLabel.TextSize = FONT_SMALL
 keyLabel.Font = Enum.Font.Gotham
 keyLabel.TextXAlignment = Enum.TextXAlignment.Left
 keyLabel.Parent = tab1
 
--- Speed
+-- Speed Settings
 local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1, -scale(10), 0, scale(18))
-speedLabel.Position = UDim2.new(0, scale(5), 0, scale(110))
+speedLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+speedLabel.Position = UDim2.new(0, scale(5), 0, scale(100))
 speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "▸ LOOP SPEED"
-speedLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+speedLabel.Text = "LOOP SPEED"
+speedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 speedLabel.TextSize = FONT_SMALL
 speedLabel.Font = Enum.Font.GothamBold
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 speedLabel.Parent = tab1
 
 local speedContainer = Instance.new("Frame")
-speedContainer.Size = UDim2.new(1, -scale(10), 0, scale(32))
-speedContainer.Position = UDim2.new(0, scale(5), 0, scale(130))
+speedContainer.Size = UDim2.new(1, -scale(10), 0, scale(28))
+speedContainer.Position = UDim2.new(0, scale(5), 0, scale(118))
 speedContainer.BackgroundTransparency = 1
 speedContainer.Parent = tab1
 
@@ -367,17 +350,13 @@ for i, val in ipairs(speedOptions) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, scale(70), 1, 0)
     btn.Position = UDim2.new(0, (i-1) * scale(78), 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     btn.BorderSizePixel = 0
     btn.Text = val .. "s"
-    btn.TextColor3 = Color3.fromRGB(180, 180, 190)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     btn.TextSize = FONT_MAIN
     btn.Font = Enum.Font.GothamBold
     btn.Parent = speedContainer
-    
-    local btnCor = Instance.new("UICorner")
-    btnCor.CornerRadius = UDim.new(0, 4)
-    btnCor.Parent = btn
     
     if val == selectedSpeed then
         btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
@@ -393,8 +372,8 @@ for i, val in ipairs(speedOptions) do
                 b.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
                 b.TextColor3 = Color3.fromRGB(255, 255, 255)
             else
-                b.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-                b.TextColor3 = Color3.fromRGB(180, 180, 190)
+                b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                b.TextColor3 = Color3.fromRGB(200, 200, 200)
             end
         end
         queueLabel.Text = "Queue: 0/5 | Speed: " .. val .. "s"
@@ -405,7 +384,7 @@ for i, val in ipairs(speedOptions) do
 end
 
 -- ============================================
--- TAB 2: PICK
+-- TAB 2: AUTO PICK
 -- ============================================
 local tab2 = Instance.new("Frame")
 tab2.Size = UDim2.new(1, 0, 1, 0)
@@ -414,9 +393,9 @@ tab2.Visible = false
 tab2.Parent = contentFrame
 
 local pickToggle = Instance.new("TextButton")
-pickToggle.Size = UDim2.new(0, scale(170), 0, scale(34))
-pickToggle.Position = UDim2.new(0.5, -scale(85), 0, scale(8))
-pickToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+pickToggle.Size = UDim2.new(0, scale(160), 0, scale(30))
+pickToggle.Position = UDim2.new(0.5, -scale(80), 0, scale(8))
+pickToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 pickToggle.BorderSizePixel = 0
 pickToggle.Text = "▶ AUTO PICK"
 pickToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -424,45 +403,41 @@ pickToggle.TextSize = FONT_MAIN
 pickToggle.Font = Enum.Font.GothamBold
 pickToggle.Parent = tab2
 
-local pCorner = Instance.new("UICorner")
-pCorner.CornerRadius = UDim.new(0, 6)
-pCorner.Parent = pickToggle
-
 local pickStatus = Instance.new("TextLabel")
-pickStatus.Size = UDim2.new(1, -scale(10), 0, scale(20))
-pickStatus.Position = UDim2.new(0, scale(5), 0, scale(48))
+pickStatus.Size = UDim2.new(1, -scale(10), 0, scale(18))
+pickStatus.Position = UDim2.new(0, scale(5), 0, scale(45))
 pickStatus.BackgroundTransparency = 1
-pickStatus.Text = "● Status: OFF"
-pickStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+pickStatus.Text = "Status: OFF"
+pickStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
 pickStatus.TextSize = FONT_MAIN
 pickStatus.Font = Enum.Font.GothamSemibold
 pickStatus.TextXAlignment = Enum.TextXAlignment.Left
 pickStatus.Parent = tab2
 
 local pickToolLabel = Instance.new("TextLabel")
-pickToolLabel.Size = UDim2.new(1, -scale(10), 0, scale(18))
-pickToolLabel.Position = UDim2.new(0, scale(5), 0, scale(70))
+pickToolLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+pickToolLabel.Position = UDim2.new(0, scale(5), 0, scale(65))
 pickToolLabel.BackgroundTransparency = 1
 pickToolLabel.Text = "Tool: None"
-pickToolLabel.TextColor3 = Color3.fromRGB(140, 140, 150)
+pickToolLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 pickToolLabel.TextSize = FONT_SMALL
 pickToolLabel.Font = Enum.Font.Gotham
 pickToolLabel.TextXAlignment = Enum.TextXAlignment.Left
 pickToolLabel.Parent = tab2
 
-local pickKey = Instance.new("TextLabel")
-pickKey.Size = UDim2.new(1, -scale(10), 0, scale(16))
-pickKey.Position = UDim2.new(0, scale(5), 0, scale(90))
-pickKey.BackgroundTransparency = 1
-pickKey.Text = "⌨ Z"
-pickKey.TextColor3 = Color3.fromRGB(80, 80, 90)
-pickKey.TextSize = FONT_SMALL
-pickKey.Font = Enum.Font.Gotham
-pickKey.TextXAlignment = Enum.TextXAlignment.Left
-pickKey.Parent = tab2
+local pickKeyLabel = Instance.new("TextLabel")
+pickKeyLabel.Size = UDim2.new(1, -scale(10), 0, scale(14))
+pickKeyLabel.Position = UDim2.new(0, scale(5), 0, scale(83))
+pickKeyLabel.BackgroundTransparency = 1
+pickKeyLabel.Text = "Z toggle"
+pickKeyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
+pickKeyLabel.TextSize = FONT_SMALL
+pickKeyLabel.Font = Enum.Font.Gotham
+pickKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+pickKeyLabel.Parent = tab2
 
 -- ============================================
--- TAB 3: SELL
+-- TAB 3: AUTO SELL
 -- ============================================
 local tab3 = Instance.new("Frame")
 tab3.Size = UDim2.new(1, 0, 1, 0)
@@ -471,9 +446,9 @@ tab3.Visible = false
 tab3.Parent = contentFrame
 
 local sellToggle = Instance.new("TextButton")
-sellToggle.Size = UDim2.new(0, scale(170), 0, scale(34))
-sellToggle.Position = UDim2.new(0.5, -scale(85), 0, scale(8))
-sellToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+sellToggle.Size = UDim2.new(0, scale(160), 0, scale(30))
+sellToggle.Position = UDim2.new(0.5, -scale(80), 0, scale(8))
+sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 sellToggle.BorderSizePixel = 0
 sellToggle.Text = "▶ AUTO SELL"
 sellToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -481,53 +456,49 @@ sellToggle.TextSize = FONT_MAIN
 sellToggle.Font = Enum.Font.GothamBold
 sellToggle.Parent = tab3
 
-local sCorner = Instance.new("UICorner")
-sCorner.CornerRadius = UDim.new(0, 6)
-sCorner.Parent = sellToggle
-
 local sellStatus = Instance.new("TextLabel")
-sellStatus.Size = UDim2.new(1, -scale(10), 0, scale(20))
-sellStatus.Position = UDim2.new(0, scale(5), 0, scale(48))
+sellStatus.Size = UDim2.new(1, -scale(10), 0, scale(18))
+sellStatus.Position = UDim2.new(0, scale(5), 0, scale(45))
 sellStatus.BackgroundTransparency = 1
-sellStatus.Text = "● Status: OFF"
-sellStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+sellStatus.Text = "Status: OFF"
+sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
 sellStatus.TextSize = FONT_MAIN
 sellStatus.Font = Enum.Font.GothamSemibold
 sellStatus.TextXAlignment = Enum.TextXAlignment.Left
 sellStatus.Parent = tab3
 
-local sellPrompt = Instance.new("TextLabel")
-sellPrompt.Size = UDim2.new(1, -scale(10), 0, scale(18))
-sellPrompt.Position = UDim2.new(0, scale(5), 0, scale(70))
-sellPrompt.BackgroundTransparency = 1
-sellPrompt.Text = "Prompt: None"
-sellPrompt.TextColor3 = Color3.fromRGB(140, 140, 150)
-sellPrompt.TextSize = FONT_SMALL
-sellPrompt.Font = Enum.Font.Gotham
-sellPrompt.TextXAlignment = Enum.TextXAlignment.Left
-sellPrompt.Parent = tab3
+local sellPromptLabel = Instance.new("TextLabel")
+sellPromptLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+sellPromptLabel.Position = UDim2.new(0, scale(5), 0, scale(65))
+sellPromptLabel.BackgroundTransparency = 1
+sellPromptLabel.Text = "Prompt: None"
+sellPromptLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+sellPromptLabel.TextSize = FONT_SMALL
+sellPromptLabel.Font = Enum.Font.Gotham
+sellPromptLabel.TextXAlignment = Enum.TextXAlignment.Left
+sellPromptLabel.Parent = tab3
 
-local sellCount = Instance.new("TextLabel")
-sellCount.Size = UDim2.new(1, -scale(10), 0, scale(18))
-sellCount.Position = UDim2.new(0, scale(5), 0, scale(90))
-sellCount.BackgroundTransparency = 1
-sellCount.Text = "Spam: 0x"
-sellCount.TextColor3 = Color3.fromRGB(140, 140, 150)
-sellCount.TextSize = FONT_SMALL
-sellCount.Font = Enum.Font.Gotham
-sellCount.TextXAlignment = Enum.TextXAlignment.Left
-sellCount.Parent = tab3
+local sellCountLabel = Instance.new("TextLabel")
+sellCountLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+sellCountLabel.Position = UDim2.new(0, scale(5), 0, scale(83))
+sellCountLabel.BackgroundTransparency = 1
+sellCountLabel.Text = "Spam: 0x"
+sellCountLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+sellCountLabel.TextSize = FONT_SMALL
+sellCountLabel.Font = Enum.Font.Gotham
+sellCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+sellCountLabel.Parent = tab3
 
-local sellKey = Instance.new("TextLabel")
-sellKey.Size = UDim2.new(1, -scale(10), 0, scale(16))
-sellKey.Position = UDim2.new(0, scale(5), 0, scale(110))
-sellKey.BackgroundTransparency = 1
-sellKey.Text = "⌨ X"
-sellKey.TextColor3 = Color3.fromRGB(80, 80, 90)
-sellKey.TextSize = FONT_SMALL
-sellKey.Font = Enum.Font.Gotham
-sellKey.TextXAlignment = Enum.TextXAlignment.Left
-sellKey.Parent = tab3
+local sellKeyLabel = Instance.new("TextLabel")
+sellKeyLabel.Size = UDim2.new(1, -scale(10), 0, scale(14))
+sellKeyLabel.Position = UDim2.new(0, scale(5), 0, scale(102))
+sellKeyLabel.BackgroundTransparency = 1
+sellKeyLabel.Text = "X toggle"
+sellKeyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
+sellKeyLabel.TextSize = FONT_SMALL
+sellKeyLabel.Font = Enum.Font.Gotham
+sellKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+sellKeyLabel.Parent = tab3
 
 -- ============================================
 -- TAB 4: MONEY
@@ -538,21 +509,21 @@ tab4.BackgroundTransparency = 1
 tab4.Visible = false
 tab4.Parent = contentFrame
 
-local mTitle = Instance.new("TextLabel")
-mTitle.Size = UDim2.new(1, -scale(10), 0, scale(18))
-mTitle.Position = UDim2.new(0, scale(5), 0, scale(2))
-mTitle.BackgroundTransparency = 1
-mTitle.Text = "LEADERSTAT"
-mTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
-mTitle.TextSize = FONT_SMALL
-mTitle.Font = Enum.Font.GothamBold
-mTitle.TextXAlignment = Enum.TextXAlignment.Left
-mTitle.Parent = tab4
+local moneyLabel = Instance.new("TextLabel")
+moneyLabel.Size = UDim2.new(1, -scale(10), 0, scale(16))
+moneyLabel.Position = UDim2.new(0, scale(5), 0, scale(2))
+moneyLabel.BackgroundTransparency = 1
+moneyLabel.Text = "LEADERSTAT NAME"
+moneyLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+moneyLabel.TextSize = FONT_SMALL
+moneyLabel.Font = Enum.Font.GothamBold
+moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
+moneyLabel.Parent = tab4
 
 local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(1, -scale(10), 0, scale(26))
-nameBox.Position = UDim2.new(0, scale(5), 0, scale(22))
-nameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+nameBox.Size = UDim2.new(1, -scale(10), 0, scale(22))
+nameBox.Position = UDim2.new(0, scale(5), 0, scale(20))
+nameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 nameBox.BorderSizePixel = 0
 nameBox.Text = "Cash"
 nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -562,25 +533,21 @@ nameBox.TextXAlignment = Enum.TextXAlignment.Left
 nameBox.PlaceholderText = "Nama Leaderstat"
 nameBox.Parent = tab4
 
-local nCorner = Instance.new("UICorner")
-nCorner.CornerRadius = UDim.new(0, 4)
-nCorner.Parent = nameBox
-
-local aTitle = Instance.new("TextLabel")
-aTitle.Size = UDim2.new(1, -scale(10), 0, scale(16))
-aTitle.Position = UDim2.new(0, scale(5), 0, scale(52))
-aTitle.BackgroundTransparency = 1
-aTitle.Text = "AMOUNT"
-aTitle.TextColor3 = Color3.fromRGB(180, 180, 190)
-aTitle.TextSize = FONT_SMALL
-aTitle.Font = Enum.Font.GothamBold
-aTitle.TextXAlignment = Enum.TextXAlignment.Left
-aTitle.Parent = tab4
+local amountLabel = Instance.new("TextLabel")
+amountLabel.Size = UDim2.new(1, -scale(10), 0, scale(14))
+amountLabel.Position = UDim2.new(0, scale(5), 0, scale(46))
+amountLabel.BackgroundTransparency = 1
+amountLabel.Text = "AMOUNT"
+amountLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+amountLabel.TextSize = FONT_SMALL
+amountLabel.Font = Enum.Font.GothamBold
+amountLabel.TextXAlignment = Enum.TextXAlignment.Left
+amountLabel.Parent = tab4
 
 local amountBox = Instance.new("TextBox")
-amountBox.Size = UDim2.new(1, -scale(10), 0, scale(26))
-amountBox.Position = UDim2.new(0, scale(5), 0, scale(70))
-amountBox.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+amountBox.Size = UDim2.new(1, -scale(10), 0, scale(22))
+amountBox.Position = UDim2.new(0, scale(5), 0, scale(62))
+amountBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 amountBox.BorderSizePixel = 0
 amountBox.Text = "1000"
 amountBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -590,31 +557,23 @@ amountBox.TextXAlignment = Enum.TextXAlignment.Left
 amountBox.PlaceholderText = "Jumlah"
 amountBox.Parent = tab4
 
-local aCorner = Instance.new("UICorner")
-aCorner.CornerRadius = UDim.new(0, 4)
-aCorner.Parent = amountBox
-
-local addBtn = Instance.new("TextButton")
-addBtn.Size = UDim2.new(1, -scale(20), 0, scale(30))
-addBtn.Position = UDim2.new(0, scale(10), 0, scale(102))
-addBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-addBtn.BorderSizePixel = 0
-addBtn.Text = "⚡ ADD MONEY"
-addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtn.TextSize = FONT_MAIN
-addBtn.Font = Enum.Font.GothamBold
-addBtn.Parent = tab4
-
-local addCorner = Instance.new("UICorner")
-addCorner.CornerRadius = UDim.new(0, 6)
-addCorner.Parent = addBtn
+local addBtnServer = Instance.new("TextButton")
+addBtnServer.Size = UDim2.new(1, -scale(20), 0, scale(28))
+addBtnServer.Position = UDim2.new(0, scale(10), 0, scale(90))
+addBtnServer.BackgroundColor3 = Color3.fromRGB(200, 80, 0)
+addBtnServer.BorderSizePixel = 0
+addBtnServer.Text = "ADD MONEY (SERVER)"
+addBtnServer.TextColor3 = Color3.fromRGB(255, 255, 255)
+addBtnServer.TextSize = FONT_SMALL
+addBtnServer.Font = Enum.Font.GothamBold
+addBtnServer.Parent = tab4
 
 local moneyStatus = Instance.new("TextLabel")
 moneyStatus.Size = UDim2.new(1, -scale(10), 0, scale(40))
-moneyStatus.Position = UDim2.new(0, scale(5), 0, scale(138))
+moneyStatus.Position = UDim2.new(0, scale(5), 0, scale(124))
 moneyStatus.BackgroundTransparency = 1
 moneyStatus.Text = "Ready"
-moneyStatus.TextColor3 = Color3.fromRGB(140, 140, 150)
+moneyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
 moneyStatus.TextSize = FONT_SMALL
 moneyStatus.Font = Enum.Font.Gotham
 moneyStatus.TextXAlignment = Enum.TextXAlignment.Left
@@ -622,7 +581,7 @@ moneyStatus.TextWrapped = true
 moneyStatus.Parent = tab4
 
 -- ============================================
--- TAB 5: SETTINGS
+-- TAB 5: SETTINGS (Noclip)
 -- ============================================
 local tab5 = Instance.new("Frame")
 tab5.Size = UDim2.new(1, 0, 1, 0)
@@ -630,90 +589,86 @@ tab5.BackgroundTransparency = 1
 tab5.Visible = false
 tab5.Parent = contentFrame
 
-local setTitle = Instance.new("TextLabel")
-setTitle.Size = UDim2.new(1, -scale(10), 0, scale(22))
-setTitle.Position = UDim2.new(0, scale(5), 0, scale(4))
-setTitle.BackgroundTransparency = 1
-setTitle.Text = "⚙ BYPASS"
-setTitle.TextColor3 = Color3.fromRGB(255, 200, 80)
-setTitle.TextSize = FONT_MAIN
-setTitle.Font = Enum.Font.GothamBold
-setTitle.TextXAlignment = Enum.TextXAlignment.Left
-setTitle.Parent = tab5
+local bypassLabel = Instance.new("TextLabel")
+bypassLabel.Size = UDim2.new(1, -scale(10), 0, scale(20))
+bypassLabel.Position = UDim2.new(0, scale(5), 0, scale(5))
+bypassLabel.BackgroundTransparency = 1
+bypassLabel.Text = "BYPASS"
+bypassLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+bypassLabel.TextSize = FONT_MAIN
+bypassLabel.Font = Enum.Font.GothamBold
+bypassLabel.TextXAlignment = Enum.TextXAlignment.Left
+bypassLabel.Parent = tab5
 
-local noclipBtn = Instance.new("TextButton")
-noclipBtn.Size = UDim2.new(0, scale(190), 0, scale(34))
-noclipBtn.Position = UDim2.new(0.5, -scale(95), 0, scale(34))
-noclipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-noclipBtn.BorderSizePixel = 0
-noclipBtn.Text = "▶ NOCLIP BODY (OFF)"
-noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-noclipBtn.TextSize = FONT_MAIN
-noclipBtn.Font = Enum.Font.GothamBold
-noclipBtn.Parent = tab5
+local noclipToggle = Instance.new("TextButton")
+noclipToggle.Size = UDim2.new(0, scale(180), 0, scale(30))
+noclipToggle.Position = UDim2.new(0.5, -scale(90), 0, scale(35))
+noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+noclipToggle.BorderSizePixel = 0
+noclipToggle.Text = "▶ NOCLIP BODY (OFF)"
+noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+noclipToggle.TextSize = FONT_MAIN
+noclipToggle.Font = Enum.Font.GothamBold
+noclipToggle.Parent = tab5
 
-local ncCorner = Instance.new("UICorner")
-ncCorner.CornerRadius = UDim.new(0, 6)
-ncCorner.Parent = noclipBtn
+local noclipStatus = Instance.new("TextLabel")
+noclipStatus.Size = UDim2.new(1, -scale(10), 0, scale(16))
+noclipStatus.Position = UDim2.new(0, scale(5), 0, scale(72))
+noclipStatus.BackgroundTransparency = 1
+noclipStatus.Text = "Status: OFF (Only affects other players)"
+noclipStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+noclipStatus.TextSize = FONT_SMALL
+noclipStatus.Font = Enum.Font.Gotham
+noclipStatus.TextXAlignment = Enum.TextXAlignment.Left
+noclipStatus.Parent = tab5
 
-local ncStatus = Instance.new("TextLabel")
-ncStatus.Size = UDim2.new(1, -scale(10), 0, scale(18))
-ncStatus.Position = UDim2.new(0, scale(5), 0, scale(74))
-ncStatus.BackgroundTransparency = 1
-ncStatus.Text = "Status: OFF"
-ncStatus.TextColor3 = Color3.fromRGB(140, 140, 150)
-ncStatus.TextSize = FONT_SMALL
-ncStatus.Font = Enum.Font.Gotham
-ncStatus.TextXAlignment = Enum.TextXAlignment.Left
-ncStatus.Parent = tab5
+local noclipInfo = Instance.new("TextLabel")
+noclipInfo.Size = UDim2.new(1, -scale(10), 0, scale(30))
+noclipInfo.Position = UDim2.new(0, scale(5), 0, scale(92))
+noclipInfo.BackgroundTransparency = 1
+noclipInfo.Text = "Mencegah body player lain menyentuh body kita\nTidak berpengaruh pada Basepart/Environment"
+noclipInfo.TextColor3 = Color3.fromRGB(100, 100, 100)
+noclipInfo.TextSize = FONT_SMALL
+noclipInfo.Font = Enum.Font.Gotham
+noclipInfo.TextXAlignment = Enum.TextXAlignment.Left
+noclipInfo.TextWrapped = true
+noclipInfo.Parent = tab5
 
-local ncInfo = Instance.new("TextLabel")
-ncInfo.Size = UDim2.new(1, -scale(10), 0, scale(32))
-ncInfo.Position = UDim2.new(0, scale(5), 0, scale(96))
-ncInfo.BackgroundTransparency = 1
-ncInfo.Text = "Mencegah body player lain menyentuh body kita"
-ncInfo.TextColor3 = Color3.fromRGB(90, 90, 100)
-ncInfo.TextSize = FONT_SMALL
-ncInfo.Font = Enum.Font.Gotham
-ncInfo.TextXAlignment = Enum.TextXAlignment.Left
-ncInfo.TextWrapped = true
-ncInfo.Parent = tab5
-
-local ncKey = Instance.new("TextLabel")
-ncKey.Size = UDim2.new(1, -scale(10), 0, scale(16))
-ncKey.Position = UDim2.new(0, scale(5), 0, scale(130))
-ncKey.BackgroundTransparency = 1
-ncKey.Text = "⌨ Numpad0"
-ncKey.TextColor3 = Color3.fromRGB(80, 80, 90)
-ncKey.TextSize = FONT_SMALL
-ncKey.Font = Enum.Font.Gotham
-ncKey.TextXAlignment = Enum.TextXAlignment.Left
-ncKey.Parent = tab5
+local noclipKey = Instance.new("TextLabel")
+noclipKey.Size = UDim2.new(1, -scale(10), 0, scale(14))
+noclipKey.Position = UDim2.new(0, scale(5), 0, scale(126))
+noclipKey.BackgroundTransparency = 1
+noclipKey.Text = "Numpad0 toggle"
+noclipKey.TextColor3 = Color3.fromRGB(80, 80, 80)
+noclipKey.TextSize = FONT_SMALL
+noclipKey.Font = Enum.Font.Gotham
+noclipKey.TextXAlignment = Enum.TextXAlignment.Left
+noclipKey.Parent = tab5
 
 -- ============================================
 -- TAB SWITCHING
 -- ============================================
-local function switchTab(id)
+local function switchTab(tabId)
     tab1.Visible = false
     tab2.Visible = false
     tab3.Visible = false
     tab4.Visible = false
     tab5.Visible = false
     
-    if id == "tab1" then tab1.Visible = true end
-    if id == "tab2" then tab2.Visible = true end
-    if id == "tab3" then tab3.Visible = true end
-    if id == "tab4" then tab4.Visible = true end
-    if id == "tab5" then tab5.Visible = true end
+    if tabId == "tab1" then tab1.Visible = true end
+    if tabId == "tab2" then tab2.Visible = true end
+    if tabId == "tab3" then tab3.Visible = true end
+    if tabId == "tab4" then tab4.Visible = true end
+    if tabId == "tab5" then tab5.Visible = true end
     
-    for tid, data in pairs(tabs) do
-        if tid == id then
-            data.btn.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    for id, data in pairs(tabs) do
+        if id == tabId then
+            data.btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             data.btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             data.line.BackgroundTransparency = 0
         else
-            data.btn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-            data.btn.TextColor3 = Color3.fromRGB(160, 160, 170)
+            data.btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            data.btn.TextColor3 = Color3.fromRGB(150, 150, 150)
             data.line.BackgroundTransparency = 1
         end
     end
@@ -730,11 +685,12 @@ switchTab("tab1")
 -- ============================================
 -- MINIMIZE
 -- ============================================
-local minimized = false
+local isMinimized = false
+
 minBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        mainFrame.Size = UDim2.new(0, GUI_W, 0, scale(32))
+    isMinimized = not isMinimized
+    if isMinimized then
+        mainFrame.Size = UDim2.new(0, GUI_W, 0, scale(28))
         minBtn.Text = "+"
         contentFrame.Visible = false
         tabContainer.Visible = false
@@ -747,34 +703,34 @@ minBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================
--- NOCLIP
+-- NOCLIP LOGIC
 -- ============================================
 local function toggleNoclip()
     noclipActive = not noclipActive
     
     if noclipActive then
-        noclipBtn.Text = "⏹ NOCLIP BODY (ON)"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        noclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        ncStatus.Text = "Status: ACTIVE"
-        ncStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+        noclipToggle.Text = "⏹ NOCLIP BODY (ON)"
+        noclipToggle.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        noclipToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        noclipStatus.Text = "Status: ACTIVE (Other players cannot touch you)"
+        noclipStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
         
         noclipConnection = RunService.Heartbeat:Connect(function()
             if not noclipActive then return end
             local char = player.Character
             if not char then return end
             
-            for _, other in ipairs(Players:GetPlayers()) do
-                if other ~= player then
-                    local oc = other.Character
-                    if oc then
-                        for _, p in ipairs(oc:GetDescendants()) do
-                            if p:IsA("BasePart") and p.Parent == oc then
-                                for _, op in ipairs(char:GetDescendants()) do
-                                    if op:IsA("BasePart") and op.Parent == char then
+            for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                if otherPlayer ~= player then
+                    local otherChar = otherPlayer.Character
+                    if otherChar then
+                        for _, part in ipairs(otherChar:GetDescendants()) do
+                            if part:IsA("BasePart") and part.Parent == otherChar then
+                                for _, ourPart in ipairs(char:GetDescendants()) do
+                                    if ourPart:IsA("BasePart") and ourPart.Parent == char then
                                         pcall(function()
-                                            op.CanCollide = false
-                                            p.CanCollide = false
+                                            ourPart.CanCollide = false
+                                            part.CanCollide = false
                                         end)
                                     end
                                 end
@@ -785,11 +741,11 @@ local function toggleNoclip()
             end
         end)
     else
-        noclipBtn.Text = "▶ NOCLIP BODY (OFF)"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        ncStatus.Text = "Status: OFF"
-        ncStatus.TextColor3 = Color3.fromRGB(140, 140, 150)
+        noclipToggle.Text = "▶ NOCLIP BODY (OFF)"
+        noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        noclipStatus.Text = "Status: OFF (Only affects other players)"
+        noclipStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
         
         if noclipConnection then
             noclipConnection:Disconnect()
@@ -798,10 +754,10 @@ local function toggleNoclip()
         
         local char = player.Character
         if char then
-            for _, p in ipairs(char:GetDescendants()) do
-                if p:IsA("BasePart") then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
                     pcall(function()
-                        p.CanCollide = true
+                        part.CanCollide = true
                     end)
                 end
             end
@@ -809,35 +765,46 @@ local function toggleNoclip()
     end
 end
 
-noclipBtn.MouseButton1Click:Connect(toggleNoclip)
+noclipToggle.MouseButton1Click:Connect(toggleNoclip)
 
-UserInputService.InputBegan:Connect(function(i, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if i.KeyCode == Enum.KeyCode.KeypadZero then
+    if input.KeyCode == Enum.KeyCode.KeypadZero then
         toggleNoclip()
     end
 end)
 
 -- ============================================
--- AUTO FISH
+-- AUTO FISH LOGIC
 -- ============================================
 local autoFishRunning = false
-local fishConnection = nil
+local autoFishConnection = nil
 local requestQueue = {}
 local isProcessing = false
-local MAX_QUEUE = 5
+local MAX_QUEUE_SIZE = 5
 local processInterval = 0.5
 
 local function processQueue()
-    if isProcessing or #requestQueue == 0 then return end
-    isProcessing = true
-    local req = table.remove(requestQueue, 1)
+    if isProcessing then return end
+    if #requestQueue == 0 then
+        isProcessing = false
+        return
+    end
     
-    pcall(function()
+    isProcessing = true
+    local request = table.remove(requestQueue, 1)
+    
+    local success = pcall(function()
         giveToolEvent:FireServer()
     end)
     
+    if not success and request.retryCount and request.retryCount < 3 then
+        request.retryCount = request.retryCount + 1
+        table.insert(requestQueue, 1, request)
+    end
+    
     isProcessing = false
+    
     if #requestQueue > 0 then
         task.wait(processInterval)
         processQueue()
@@ -845,304 +812,354 @@ local function processQueue()
 end
 
 local function queueRequest()
-    if #requestQueue >= MAX_QUEUE then
+    if #requestQueue >= MAX_QUEUE_SIZE then
         table.remove(requestQueue, 1)
     end
-    table.insert(requestQueue, {retry = 0})
+    
+    table.insert(requestQueue, {
+        timestamp = tick(),
+        retryCount = 0
+    })
+    
     if not isProcessing then
-        task.wait(0.05)
+        task.wait(0.1)
         processQueue()
     end
 end
 
-local function toggleFish()
+local function toggleAutoFish()
     autoFishRunning = not autoFishRunning
     
     if autoFishRunning then
         toggleBtn.Text = "⏹ STOP FISH"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        statusLabel.Text = "● Status: ACTIVE"
+        statusLabel.Text = "Status: ACTIVE"
         statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
         requestQueue = {}
         isProcessing = false
+        
         processInterval = selectedSpeed
         
-        fishConnection = RunService.Heartbeat:Connect(function()
+        autoFishConnection = RunService.Heartbeat:Connect(function()
             if autoFishRunning then
                 queueRequest()
             end
         end)
-        task.wait(0.3)
+        
+        task.wait(0.5)
         queueRequest()
     else
         toggleBtn.Text = "▶ START FISH"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-        statusLabel.Text = "● Status: OFF"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        if fishConnection then
-            fishConnection:Disconnect()
-            fishConnection = nil
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        statusLabel.Text = "Status: OFF"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        if autoFishConnection then
+            autoFishConnection:Disconnect()
+            autoFishConnection = nil
         end
         requestQueue = {}
         isProcessing = false
     end
 end
 
-toggleBtn.MouseButton1Click:Connect(toggleFish)
+toggleBtn.MouseButton1Click:Connect(toggleAutoFish)
 
-UserInputService.InputBegan:Connect(function(i, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if i.KeyCode == Enum.KeyCode.F then
-        toggleFish()
+    if input.KeyCode == Enum.KeyCode.F then
+        toggleAutoFish()
     end
 end)
 
 RunService.Stepped:Connect(function()
     if autoFishRunning then
-        queueLabel.Text = "Queue: " .. #requestQueue .. "/" .. MAX_QUEUE .. " | Speed: " .. selectedSpeed .. "s"
+        queueLabel.Text = "Queue: " .. #requestQueue .. "/" .. MAX_QUEUE_SIZE .. " | Speed: " .. selectedSpeed .. "s"
     else
-        queueLabel.Text = "Queue: 0/" .. MAX_QUEUE .. " | Speed: " .. selectedSpeed .. "s"
+        queueLabel.Text = "Queue: 0/" .. MAX_QUEUE_SIZE .. " | Speed: " .. selectedSpeed .. "s"
     end
 end)
 
 -- ============================================
--- AUTO PICK
+-- AUTO PICK LOGIC
 -- ============================================
 local autoPickRunning = false
-local pickConnection = nil
+local autoPickConnection = nil
 
 local function getRandomTool()
     local tools = {}
+    
     if character then
-        for _, c in ipairs(character:GetChildren()) do
-            if c:IsA("Tool") then table.insert(tools, c) end
+        for _, child in ipairs(character:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
         end
     end
-    local bp = player:FindFirstChild("Backpack")
-    if bp then
-        for _, c in ipairs(bp:GetChildren()) do
-            if c:IsA("Tool") then table.insert(tools, c) end
+    
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, child in ipairs(backpack:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
         end
     end
-    return #tools > 0 and tools[math.random(1, #tools)] or nil
+    
+    if #tools > 0 then
+        return tools[math.random(1, #tools)]
+    end
+    return nil
 end
 
-local function equipTool(t)
-    if not t then return false end
-    if t.Parent == character then return true end
-    t.Parent = character
+local function equipTool(tool)
+    if not tool then return false end
+    if tool.Parent == character then return true end
+    tool.Parent = character
     return true
 end
 
-local function getEquipped()
+local function getEquippedTool()
     if not character then return nil end
-    for _, c in ipairs(character:GetChildren()) do
-        if c:IsA("Tool") then return c end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            return child
+        end
     end
     return nil
 end
 
 local function doPick()
     if not autoPickRunning then return end
-    local eq = getEquipped()
-    if eq then
-        pickToolLabel.Text = "Tool: " .. eq.Name .. " ✓"
+    
+    local equipped = getEquippedTool()
+    
+    if equipped then
+        pickToolLabel.Text = "Tool: " .. equipped.Name .. " (already)"
         pickToolLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
         return
     end
-    local t = getRandomTool()
-    if t then
-        equipTool(t)
-        pickToolLabel.Text = "Tool: " .. t.Name .. " ✓"
+    
+    local randomTool = getRandomTool()
+    if randomTool then
+        equipTool(randomTool)
+        pickToolLabel.Text = "Tool: " .. randomTool.Name .. " (equipped)"
         pickToolLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     else
-        pickToolLabel.Text = "Tool: None"
-        pickToolLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        pickToolLabel.Text = "Tool: No tool available"
+        pickToolLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end
 
-local function togglePick()
+local function toggleAutoPick()
     autoPickRunning = not autoPickRunning
+    
     if autoPickRunning then
         pickToggle.Text = "⏹ STOP PICK"
         pickToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        pickStatus.Text = "● Status: ACTIVE"
+        pickStatus.Text = "Status: ACTIVE"
         pickStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-        pickConnection = RunService.Heartbeat:Connect(function()
+        
+        autoPickConnection = RunService.Heartbeat:Connect(function()
             if autoPickRunning then
                 doPick()
                 task.wait(1)
             end
         end)
+        
         task.wait(0.3)
         doPick()
     else
         pickToggle.Text = "▶ AUTO PICK"
-        pickToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-        pickStatus.Text = "● Status: OFF"
-        pickStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+        pickToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        pickStatus.Text = "Status: OFF"
+        pickStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
         pickToolLabel.Text = "Tool: None"
-        pickToolLabel.TextColor3 = Color3.fromRGB(140, 140, 150)
-        if pickConnection then
-            pickConnection:Disconnect()
-            pickConnection = nil
+        pickToolLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        if autoPickConnection then
+            autoPickConnection:Disconnect()
+            autoPickConnection = nil
         end
     end
 end
 
-pickToggle.MouseButton1Click:Connect(togglePick)
+pickToggle.MouseButton1Click:Connect(toggleAutoPick)
 
-UserInputService.InputBegan:Connect(function(i, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if i.KeyCode == Enum.KeyCode.Z then
-        togglePick()
+    if input.KeyCode == Enum.KeyCode.Z then
+        toggleAutoPick()
     end
 end)
 
 -- ============================================
--- AUTO SELL
+-- AUTO SELL LOGIC
 -- ============================================
 local autoSellRunning = false
-local sellConnection = nil
-local spamCount = 0
+local autoSellConnection = nil
+local sellSpamCount = 0
 
 local function findSellPrompts()
     local prompts = {}
     local function search(obj)
-        for _, c in ipairs(obj:GetChildren()) do
-            if c:IsA("ProximityPrompt") then
-                local action = c.ActionText or ""
-                if string.find(string.lower(action), "sell") or string.find(string.lower(action), "jual") then
-                    table.insert(prompts, c)
+        for _, child in ipairs(obj:GetChildren()) do
+            if child:IsA("ProximityPrompt") then
+                local action = child.ActionText or ""
+                if string.find(string.lower(action), "sell") or 
+                   string.find(string.lower(action), "jual") then
+                    table.insert(prompts, child)
                 end
             end
-            search(c)
+            search(child)
         end
     end
     search(Workspace)
     return prompts
 end
 
-local function doSell()
+local function doSellSpam()
     if not autoSellRunning then return end
+    
     local prompts = findSellPrompts()
+    
     if #prompts > 0 then
-        for _, p in ipairs(prompts) do
-            sellPrompt.Text = "Prompt: " .. p.ActionText .. " ✓"
-            sellPrompt.TextColor3 = Color3.fromRGB(100, 255, 100)
-            pcall(function() p.HoldDuration = 0 end)
+        for _, prompt in ipairs(prompts) do
+            sellPromptLabel.Text = "Prompt: " .. prompt.ActionText .. " (" .. prompt.Parent.Name .. ")"
+            sellPromptLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            pcall(function()
+                prompt.HoldDuration = 0
+            end)
+            
             for i = 1, 5 do
                 if not autoSellRunning then break end
+                
                 pcall(function()
-                    p:InputHold()
+                    prompt:InputHold()
                     task.wait(0.02)
-                    p:InputRelease()
+                    prompt:InputRelease()
                 end)
-                spamCount = spamCount + 1
-                sellCount.Text = "Spam: " .. spamCount .. "x"
+                
+                sellSpamCount = sellSpamCount + 1
+                sellCountLabel.Text = "Spam: " .. sellSpamCount .. "x"
+                
                 task.wait(0.05)
             end
         end
     else
-        sellPrompt.Text = "Prompt: None"
-        sellPrompt.TextColor3 = Color3.fromRGB(255, 80, 80)
+        sellPromptLabel.Text = "Prompt: No sell prompt found"
+        sellPromptLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end
 
-local function toggleSell()
+local function toggleAutoSell()
     autoSellRunning = not autoSellRunning
+    
     if autoSellRunning then
         sellToggle.Text = "⏹ STOP SELL"
         sellToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        sellStatus.Text = "● Status: ACTIVE"
+        sellStatus.Text = "Status: ACTIVE"
         sellStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-        spamCount = 0
-        sellConnection = RunService.Heartbeat:Connect(function()
+        sellSpamCount = 0
+        
+        autoSellConnection = RunService.Heartbeat:Connect(function()
             if autoSellRunning then
-                doSell()
-                task.wait(0.6)
+                doSellSpam()
+                task.wait(0.8)
             end
         end)
+        
         task.wait(0.3)
-        doSell()
+        doSellSpam()
     else
         sellToggle.Text = "▶ AUTO SELL"
-        sellToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-        sellStatus.Text = "● Status: OFF"
-        sellStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
-        sellPrompt.Text = "Prompt: None"
-        sellPrompt.TextColor3 = Color3.fromRGB(140, 140, 150)
-        if sellConnection then
-            sellConnection:Disconnect()
-            sellConnection = nil
+        sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        sellStatus.Text = "Status: OFF"
+        sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+        sellPromptLabel.Text = "Prompt: None"
+        sellPromptLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        if autoSellConnection then
+            autoSellConnection:Disconnect()
+            autoSellConnection = nil
         end
     end
 end
 
-sellToggle.MouseButton1Click:Connect(toggleSell)
+sellToggle.MouseButton1Click:Connect(toggleAutoSell)
 
-UserInputService.InputBegan:Connect(function(i, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if i.KeyCode == Enum.KeyCode.X then
-        toggleSell()
+    if input.KeyCode == Enum.KeyCode.X then
+        toggleAutoSell()
     end
 end)
 
 -- ============================================
--- ADD MONEY
+-- ADD MONEY SERVER
 -- ============================================
-local function addMoney()
-    local name = nameBox.Text
-    local amt = tonumber(amountBox.Text) or 0
-    if name == "" or amt <= 0 then
-        moneyStatus.Text = "❌ Nama/Jumlah tidak valid"
+local function addMoneyServer()
+    local statName = nameBox.Text
+    local amount = tonumber(amountBox.Text) or 0
+    
+    if statName == "" or amount <= 0 then
+        moneyStatus.Text = "ERROR: Nama/Jumlah tidak valid"
         moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
         return
     end
     
-    local remote, typ = findBestRemote()
-    if not remote then
-        moneyStatus.Text = "❌ Tidak ada Remote ditemukan"
+    local targetRemote, remoteType = findBestRemote()
+    
+    if not targetRemote then
+        moneyStatus.Text = "ERROR: Tidak ada Remote ditemukan"
         moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
         return
     end
     
-    local success, result
-    if typ == "Event" then
+    local success = false
+    local result = nil
+    
+    if remoteType == "Event" then
         success, result = pcall(function()
-            remote:FireServer(name, amt, player)
+            targetRemote:FireServer(statName, amount, player)
+        end)
+    elseif remoteType == "Function" then
+        success, result = pcall(function()
+            return targetRemote:InvokeServer(statName, amount, player)
         end)
     else
         success, result = pcall(function()
-            return remote:InvokeServer(name, amt, player)
+            targetRemote:FireServer(statName, amount, player)
         end)
+        if not success then
+            success, result = pcall(function()
+                return targetRemote:InvokeServer(statName, amount, player)
+            end)
+        end
     end
     
     if success then
-        moneyStatus.Text = "✅ +" .. amt .. " " .. name .. " via " .. remote.Name
+        moneyStatus.Text = "SERVER: +" .. amount .. " " .. statName .. " via " .. targetRemote.Name
         moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
     else
-        moneyStatus.Text = "❌ ERROR: " .. tostring(result)
+        moneyStatus.Text = "SERVER ERROR: " .. tostring(result)
         moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
 end
 
-addBtn.MouseButton1Click:Connect(addMoney)
+addBtnServer.MouseButton1Click:Connect(addMoneyServer)
 
 task.wait(1)
-local best, t = findBestRemote()
+local best, typ = findBestRemote()
 if best then
-    moneyStatus.Text = "🔗 Remote: " .. best.Name .. " (" .. t .. ") | Ready"
+    moneyStatus.Text = "Remote: " .. best.Name .. " (" .. typ .. ") | Ready"
     moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
 else
-    moneyStatus.Text = "❌ No Remote Found"
-    moneyStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+    moneyStatus.Text = "No Remote Found"
+    moneyStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
 end
 
--- ============================================
--- STARTUP LOG
--- ============================================
-print("⚡ ANOMALI FISH v11.0 LOADED")
-print("📱 Mode: " .. (isPhone and "Phone" or (isTablet and "Tablet" or "PC")))
-print("📐 Size: " .. GUI_W .. "x" .. GUI_H)
-print("⌨ F=Fish | Z=Pick | X=Sell | Numpad0=Noclip")
+print("Catch A Anomali Fish v8.0 Ultimate - Loaded")
+print("F = Auto Fish | Z = Auto Pick | X = Auto Sell | Numpad0 = Noclip")
