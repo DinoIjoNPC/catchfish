@@ -1,6 +1,6 @@
 -- ============================================
--- CATCH A ANOMALI FISH v9.0
--- FULL FIX + MOBILE DRAG + 3 MODE + BACKDOOR
+-- CATCH A ANOMALI FISH v9.1
+-- FULL FIX - MOBILE DRAG WORKING
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -8,38 +8,59 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 -- ============================================
--- FIX: MOBILE DRAG + CLICK DETECTION
+-- FIX: MOBILE DRAG VIA USERINPUTSERVICE
 -- ============================================
-local function isMobile()
-    return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+local dragging = false
+local dragStart = nil
+local startPos = nil
+local dragObject = nil
+
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = mainFrame.Position
+    dragObject = input
+end
+
+local function updateDrag(input)
+    if dragging and dragStart and startPos then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end
+
+local function endDrag()
+    dragging = false
+    dragStart = nil
+    startPos = nil
+    dragObject = nil
 end
 
 -- ============================================
--- BACKDOOR SYSTEM (Server Side Injection)
+-- BACKDOOR SYSTEM
 -- ============================================
 local backdoorActive = false
-local backdoorConnection = nil
 
 local function createBackdoor()
-    -- Inject fake remote jika tidak ada
-    local fakeRemote = Instance.new("RemoteEvent")
-    fakeRemote.Name = "AnomaliBackdoor"
-    fakeRemote.Parent = ReplicatedStorage
+    if backdoorActive then return end
     
-    -- Hook ke semua remote yang ada
+    -- Inject ke semua remote yang ada
     for _, remote in ipairs(ReplicatedStorage:GetChildren()) do
         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
             local oldFire = remote.FireServer
             if oldFire then
                 remote.FireServer = function(self, ...)
                     local args = {...}
-                    -- Intercept dan tambahkan money
                     if type(args[1]) == "string" and string.find(string.lower(args[1]), "money") then
                         args[2] = (args[2] or 0) + 999999
                     end
@@ -49,38 +70,11 @@ local function createBackdoor()
         end
     end
     
-    -- Buat virtual remote untuk add money
-    local moneyRemote = Instance.new("RemoteEvent")
-    moneyRemote.Name = "AddMoneyBackdoor"
-    moneyRemote.Parent = ReplicatedStorage
-    
-    moneyRemote.OnServerEvent:Connect(function(plr, amount)
-        -- Simulasi server side add money
-        local leaderstats = plr:FindFirstChild("leaderstats")
-        if leaderstats then
-            for _, stat in ipairs(leaderstats:GetChildren()) do
-                if stat:IsA("NumberValue") or stat:IsA("IntValue") or stat:IsA("StringValue") then
-                    if type(stat.Value) == "number" then
-                        stat.Value = stat.Value + amount
-                    end
-                end
-            end
-        end
-    end)
-    
     backdoorActive = true
 end
 
 local function addMoneyBackdoor(amount)
     if not backdoorActive then createBackdoor() end
-    
-    -- Trigger via fake remote
-    local remote = ReplicatedStorage:FindFirstChild("AddMoneyBackdoor")
-    if remote then
-        pcall(function()
-            remote:FireServer(amount)
-        end)
-    end
     
     -- Direct injection ke leaderstats
     local leaderstats = player:FindFirstChild("leaderstats")
@@ -96,7 +90,7 @@ local function addMoneyBackdoor(amount)
 end
 
 -- ============================================
--- GUI (SAME STYLE + MOBILE FIX)
+-- GUI
 -- ============================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatchAnomaliGUI"
@@ -124,69 +118,36 @@ shadow.SliceCenter = Rect.new(10, 10, 10, 10)
 shadow.Parent = mainFrame
 
 -- ============================================
--- FIX: MOBILE DRAG ANYWHERE
+-- FIX: DRAG via UserInputService (PC + MOBILE)
 -- ============================================
-local dragging = false
-local dragStart = nil
-local startPos = nil
-local dragObject = nil
-
-local function startDrag(input)
-    dragging = true
-    dragStart = input.Position
-    startPos = mainFrame.Position
-    dragObject = input
-end
-
-local function updateDrag(input)
-    if dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end
-
-local function endDrag()
-    dragging = false
-    dragObject = nil
-end
-
--- Mouse drag
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        startDrag(input)
-    end
-end)
-
-mainFrame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        endDrag()
-    end
-end)
-
--- Touch drag (MOBILE FIX)
-mainFrame.TouchBegan:Connect(function(touch)
-    startDrag(touch)
-end)
-
-mainFrame.TouchMoved:Connect(function(touch)
-    updateDrag(touch)
-end)
-
-mainFrame.TouchEnded:Connect(function()
-    endDrag()
-end)
-
--- Global drag update
-UserInputService.InputChanged:Connect(function(input)
-    if dragging then
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateDrag(input)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- Cek apakah input terjadi di dalam mainFrame
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        -- Cek posisi mouse/touch di dalam frame
+        local mousePos = input.Position
+        local framePos = mainFrame.AbsolutePosition
+        local frameSize = mainFrame.AbsoluteSize
+        
+        if mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+           mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y then
+            startDrag(input)
         end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateDrag(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        endDrag()
     end
 end)
 
@@ -195,6 +156,7 @@ end)
 -- ============================================
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 28)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
 titleBar.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
@@ -203,7 +165,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -40, 1, 0)
 titleText.Position = UDim2.new(0, 8, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "ANOMALI FISH v9"
+titleText.Text = "ANOMALI FISH v9.1"
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleText.TextSize = 12
 titleText.TextXAlignment = Enum.TextXAlignment.Left
@@ -272,7 +234,7 @@ contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
 -- ============================================
--- TAB 1: AUTO FISH (3 MODE SPEED)
+-- TAB 1: AUTO FISH
 -- ============================================
 local tab1 = Instance.new("Frame")
 tab1.Size = UDim2.new(1, 0, 1, 0)
@@ -300,7 +262,7 @@ speedFrame.Parent = tab1
 
 local speedBtns = {}
 local speedValues = {0.5, 1, 1.5}
-local currentSpeed = 1
+local currentSpeed = 2
 
 for i, val in ipairs(speedValues) do
     local btn = Instance.new("TextButton")
@@ -356,7 +318,7 @@ keyLabel.TextXAlignment = Enum.TextXAlignment.Left
 keyLabel.Parent = tab1
 
 -- ============================================
--- TAB 2: AUTO PICK + AUTO SELL
+-- TAB 2: SELL
 -- ============================================
 local tab2 = Instance.new("Frame")
 tab2.Size = UDim2.new(1, 0, 1, 0)
@@ -364,7 +326,6 @@ tab2.BackgroundTransparency = 1
 tab2.Visible = false
 tab2.Parent = contentFrame
 
--- Auto Pick Button
 local pickToggle = Instance.new("TextButton")
 pickToggle.Size = UDim2.new(0, 140, 0, 28)
 pickToggle.Position = UDim2.new(0.5, -145, 0, 8)
@@ -376,7 +337,6 @@ pickToggle.TextSize = 11
 pickToggle.Font = Enum.Font.GothamBold
 pickToggle.Parent = tab2
 
--- Auto Sell Button
 local sellToggle = Instance.new("TextButton")
 sellToggle.Size = UDim2.new(0, 140, 0, 28)
 sellToggle.Position = UDim2.new(0.5, 5, 0, 8)
@@ -444,7 +404,7 @@ sellKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 sellKeyLabel.Parent = tab2
 
 -- ============================================
--- TAB 3: MONEY BACKDOOR
+-- TAB 3: MONEY
 -- ============================================
 local tab3 = Instance.new("Frame")
 tab3.Size = UDim2.new(1, 0, 1, 0)
@@ -583,7 +543,7 @@ for i, btn in ipairs(speedBtns) do
 end
 
 -- ============================================
--- AUTO FISH LOGIC (3 MODE)
+-- AUTO FISH LOGIC
 -- ============================================
 local autoFishRunning = false
 local autoFishConnection = nil
@@ -591,6 +551,7 @@ local requestQueue = {}
 local isProcessing = false
 local MAX_QUEUE_SIZE = 5
 local fishCount = 0
+local giveToolEvent = ReplicatedStorage:FindFirstChild("GiveTool")
 
 local function processQueue()
     if isProcessing then return end
@@ -693,7 +654,7 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ============================================
--- AUTO PICK (AMBIL TOOL)
+-- AUTO PICK
 -- ============================================
 local autoPickRunning = false
 local pickConnection = nil
@@ -732,9 +693,11 @@ local function equipTool(tool)
     end
     
     local backpack = player:FindFirstChild("Backpack") or player
-    tool.Parent = backpack
-    task.wait(0.1)
-    tool.Parent = character
+    pcall(function()
+        tool.Parent = backpack
+        task.wait(0.1)
+        tool.Parent = character
+    end)
     return true
 end
 
@@ -793,7 +756,7 @@ end
 pickToggle.MouseButton1Click:Connect(toggleAutoPick)
 
 -- ============================================
--- FIX: AUTO SELL (CLICK PROXIMITY PROMPT)
+-- AUTO SELL (FIX CLICK)
 -- ============================================
 local autoSellRunning = false
 local sellConnection = nil
@@ -802,23 +765,12 @@ local soldCount = 0
 local function clickProximityPrompt(prompt)
     if not prompt then return false end
     
-    -- Method 1: Fire InputHold/InputRelease
+    -- Method 1: InputHold/InputRelease
     pcall(function()
         prompt.HoldDuration = 0
         prompt:InputHold()
         task.wait(0.05)
         prompt:InputRelease()
-    end)
-    
-    -- Method 2: Virtual click via mouse
-    pcall(function()
-        local position = prompt.Parent and prompt.Parent.Position or Vector3.new(0,0,0)
-        local screenPos, onScreen = player:GetMouse().ViewportSize and Vector2.new(400, 300) or nil
-        if screenPos then
-            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0)
-            task.wait(0.05)
-            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0)
-        end
     end)
     
     return true
@@ -838,7 +790,7 @@ local function findSellPrompts()
             search(child)
         end
     end
-    search(Workspace)
+    pcall(function() search(Workspace) end)
     return prompts
 end
 
@@ -854,7 +806,6 @@ local function toggleAutoSell()
         
         sellConnection = RunService.Heartbeat:Connect(function()
             if autoSellRunning then
-                -- Cek tool
                 local equipped = getEquippedTool()
                 if not equipped then
                     toolStatus.Text = "Tool: None - Pick first!"
@@ -863,7 +814,6 @@ local function toggleAutoSell()
                     return
                 end
                 
-                -- Cari prompts
                 local prompts = findSellPrompts()
                 if #prompts > 0 then
                     for _, prompt in ipairs(prompts) do
@@ -874,12 +824,14 @@ local function toggleAutoSell()
                         end)
                         task.wait(0.1)
                     end
+                    sellStatus.Text = "Sell: ACTIVE (" .. #prompts .. " prompts)"
+                    sellStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
                 else
                     sellStatus.Text = "Sell: No prompt"
                     sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
                 end
                 
-                task.wait(0.5) -- Kecepatan 0.5 detik
+                task.wait(0.5)
             end
         end)
     else
@@ -937,9 +889,8 @@ addCustomBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================
--- INIT STATUS
+-- INIT
 -- ============================================
-print("Catch Anomali Fish v9.0 - Full Update Loaded")
-print("F = Auto Fish (3 Speed)")
-print("Z = Auto Pick | X = Auto Sell (0.5s loop)")
-print("Backdoor Active - Add Money without visual")
+print("Catch Anomali Fish v9.1 - Loaded")
+print("F = Auto Fish | Z = Pick | X = Sell")
+print("Mobile Drag FIXED!")
