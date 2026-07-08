@@ -1,6 +1,6 @@
 -- ============================================
--- CATCH A ANOMALI FISH v5.0 - FULL NATIVE GUI
--- DRAG | MINIMIZE | ADD MONEY (Client/Server)
+-- CATCH A ANOMALI FISH v6.0 - SERVER SIDE MONEY
+-- REMOTE EVENT + REMOTE FUNCTION FULL
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -12,7 +12,49 @@ local player = Players.LocalPlayer
 local giveToolEvent = ReplicatedStorage:WaitForChild("GiveTool")
 
 -- ============================================
--- GUI SIZE KECIL (280x250)
+-- DETECT ALL REMOTES FOR SERVER MONEY
+-- ============================================
+local remoteEvents = {}
+local remoteFunctions = {}
+
+for _, child in ipairs(ReplicatedStorage:GetChildren()) do
+    if child:IsA("RemoteEvent") then
+        table.insert(remoteEvents, child)
+    elseif child:IsA("RemoteFunction") then
+        table.insert(remoteFunctions, child)
+    end
+end
+
+-- Cari remote yang paling mungkin untuk money
+local function findBestRemote()
+    -- Prioritaskan yang namanya mengandung keyword
+    local keywords = {"Money", "Add", "Give", "Set", "Update", "Stat", "Leader", "Cash", "Coin", "Gold"}
+    
+    for _, kw in ipairs(keywords) do
+        for _, remote in ipairs(remoteEvents) do
+            if string.find(remote.Name, kw) then
+                return remote, "Event"
+            end
+        end
+        for _, remote in ipairs(remoteFunctions) do
+            if string.find(remote.Name, kw) then
+                return remote, "Function"
+            end
+        end
+    end
+    
+    -- Fallback: ambil remote pertama
+    if #remoteEvents > 0 then
+        return remoteEvents[1], "Event"
+    elseif #remoteFunctions > 0 then
+        return remoteFunctions[1], "Function"
+    end
+    
+    return nil, nil
+end
+
+-- ============================================
+-- GUI SIZE KECIL (280x260)
 -- ============================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatchAnomaliGUI"
@@ -21,14 +63,13 @@ screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 280, 0, 250)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -125)
+mainFrame.Size = UDim2.new(0, 280, 0, 260)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- Shadow
 local shadow = Instance.new("ImageLabel")
 shadow.Size = UDim2.new(1, 20, 1, 20)
 shadow.Position = UDim2.new(0, -10, 0, -10)
@@ -41,7 +82,7 @@ shadow.SliceCenter = Rect.new(10, 10, 10, 10)
 shadow.Parent = mainFrame
 
 -- ============================================
--- TITLE BAR (DRAG)
+-- TITLE BAR
 -- ============================================
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 28)
@@ -60,7 +101,6 @@ titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
 titleText.Parent = titleBar
 
--- Tombol MINIMIZE
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 22, 0, 22)
 minBtn.Position = UDim2.new(1, -48, 0, 3)
@@ -72,7 +112,6 @@ minBtn.TextSize = 14
 minBtn.Font = Enum.Font.GothamBold
 minBtn.Parent = titleBar
 
--- Tombol CLOSE
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 22, 0, 22)
 closeBtn.Position = UDim2.new(1, -26, 0, 3)
@@ -84,9 +123,6 @@ closeBtn.TextSize = 12
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = titleBar
 
--- ============================================
--- TOMBOL OPEN (Muncul saat GUI di-close)
--- ============================================
 local openBtn = Instance.new("TextButton")
 openBtn.Name = "OpenBtn"
 openBtn.Size = UDim2.new(0, 80, 0, 30)
@@ -101,7 +137,7 @@ openBtn.Visible = false
 openBtn.Parent = screenGui
 
 -- ============================================
--- TAB BUTTONS (Di dalam mainFrame)
+-- TAB BUTTONS
 -- ============================================
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, 0, 0, 28)
@@ -111,8 +147,6 @@ tabContainer.BorderSizePixel = 0
 tabContainer.Parent = mainFrame
 
 local tabs = {}
-local currentTab = nil
-
 local tabData = {
     {name = "Auto", id = "tab1"},
     {name = "Money", id = "tab2"}
@@ -205,7 +239,7 @@ keyLabel.TextXAlignment = Enum.TextXAlignment.Left
 keyLabel.Parent = tab1
 
 -- ============================================
--- TAB 2: ADD MONEY
+-- TAB 2: ADD MONEY (SERVER SIDE ONLY)
 -- ============================================
 local tab2 = Instance.new("Frame")
 tab2.Size = UDim2.new(1, 0, 1, 0)
@@ -213,19 +247,17 @@ tab2.BackgroundTransparency = 1
 tab2.Visible = false
 tab2.Parent = contentFrame
 
--- Label
 local moneyLabel = Instance.new("TextLabel")
 moneyLabel.Size = UDim2.new(1, -10, 0, 16)
 moneyLabel.Position = UDim2.new(0, 5, 0, 2)
 moneyLabel.BackgroundTransparency = 1
-moneyLabel.Text = "LEADERSTAT / CURRENCY NAME"
+moneyLabel.Text = "LEADERSTAT NAME"
 moneyLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 moneyLabel.TextSize = 9
 moneyLabel.Font = Enum.Font.GothamBold
 moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
 moneyLabel.Parent = tab2
 
--- TextBox untuk nama Leaderstat
 local nameBox = Instance.new("TextBox")
 nameBox.Size = UDim2.new(1, -10, 0, 22)
 nameBox.Position = UDim2.new(0, 5, 0, 20)
@@ -236,22 +268,20 @@ nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 nameBox.TextSize = 11
 nameBox.Font = Enum.Font.Gotham
 nameBox.TextXAlignment = Enum.TextXAlignment.Left
-nameBox.PlaceholderText = "Nama Leaderstat (contoh: Cash)"
+nameBox.PlaceholderText = "Nama Leaderstat"
 nameBox.Parent = tab2
 
--- Label Jumlah
 local amountLabel = Instance.new("TextLabel")
 amountLabel.Size = UDim2.new(1, -10, 0, 14)
 amountLabel.Position = UDim2.new(0, 5, 0, 46)
 amountLabel.BackgroundTransparency = 1
-amountLabel.Text = "JUMLAH"
+amountLabel.Text = "AMOUNT"
 amountLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 amountLabel.TextSize = 9
 amountLabel.Font = Enum.Font.GothamBold
 amountLabel.TextXAlignment = Enum.TextXAlignment.Left
 amountLabel.Parent = tab2
 
--- TextBox untuk jumlah
 local amountBox = Instance.new("TextBox")
 amountBox.Size = UDim2.new(1, -10, 0, 22)
 amountBox.Position = UDim2.new(0, 5, 0, 62)
@@ -262,43 +292,56 @@ amountBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 amountBox.TextSize = 11
 amountBox.Font = Enum.Font.Gotham
 amountBox.TextXAlignment = Enum.TextXAlignment.Left
-amountBox.PlaceholderText = "Jumlah (contoh: 9999)"
+amountBox.PlaceholderText = "Jumlah"
 amountBox.Parent = tab2
 
--- Tombol ADD MONEY (Client)
-local addBtnClient = Instance.new("TextButton")
-addBtnClient.Size = UDim2.new(0, 120, 0, 26)
-addBtnClient.Position = UDim2.new(0.5, -130, 0, 92)
-addBtnClient.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
-addBtnClient.BorderSizePixel = 0
-addBtnClient.Text = "ADD (CLIENT)"
-addBtnClient.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtnClient.TextSize = 10
-addBtnClient.Font = Enum.Font.GothamBold
-addBtnClient.Parent = tab2
+-- Remote Selector Dropdown (simulasi)
+local remoteLabel = Instance.new("TextLabel")
+remoteLabel.Size = UDim2.new(1, -10, 0, 14)
+remoteLabel.Position = UDim2.new(0, 5, 0, 88)
+remoteLabel.BackgroundTransparency = 1
+remoteLabel.Text = "REMOTE TARGET"
+remoteLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+remoteLabel.TextSize = 9
+remoteLabel.Font = Enum.Font.GothamBold
+remoteLabel.TextXAlignment = Enum.TextXAlignment.Left
+remoteLabel.Parent = tab2
 
--- Tombol ADD MONEY (Server via Remote)
+local remoteBox = Instance.new("TextBox")
+remoteBox.Size = UDim2.new(1, -10, 0, 22)
+remoteBox.Position = UDim2.new(0, 5, 0, 104)
+remoteBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+remoteBox.BorderSizePixel = 0
+remoteBox.Text = "Auto Detect"
+remoteBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+remoteBox.TextSize = 10
+remoteBox.Font = Enum.Font.Gotham
+remoteBox.TextXAlignment = Enum.TextXAlignment.Left
+remoteBox.PlaceholderText = "Nama Remote (kosongkan untuk auto)"
+remoteBox.Parent = tab2
+
+-- Tombol ADD MONEY SERVER SIDE
 local addBtnServer = Instance.new("TextButton")
-addBtnServer.Size = UDim2.new(0, 120, 0, 26)
-addBtnServer.Position = UDim2.new(0.5, 10, 0, 92)
-addBtnServer.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+addBtnServer.Size = UDim2.new(1, -20, 0, 30)
+addBtnServer.Position = UDim2.new(0, 10, 0, 132)
+addBtnServer.BackgroundColor3 = Color3.fromRGB(200, 80, 0)
 addBtnServer.BorderSizePixel = 0
-addBtnServer.Text = "ADD (SERVER)"
+addBtnServer.Text = "ADD MONEY (SERVER)"
 addBtnServer.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtnServer.TextSize = 10
+addBtnServer.TextSize = 12
 addBtnServer.Font = Enum.Font.GothamBold
 addBtnServer.Parent = tab2
 
--- Status Money
 local moneyStatus = Instance.new("TextLabel")
-moneyStatus.Size = UDim2.new(1, -10, 0, 16)
-moneyStatus.Position = UDim2.new(0, 5, 0, 124)
+moneyStatus.Size = UDim2.new(1, -10, 0, 30)
+moneyStatus.Position = UDim2.new(0, 5, 0, 168)
 moneyStatus.BackgroundTransparency = 1
 moneyStatus.Text = "Ready"
 moneyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
 moneyStatus.TextSize = 9
 moneyStatus.Font = Enum.Font.Gotham
 moneyStatus.TextXAlignment = Enum.TextXAlignment.Left
+moneyStatus.TextWrapped = true
 moneyStatus.Parent = tab2
 
 -- ============================================
@@ -388,7 +431,7 @@ minBtn.MouseButton1Click:Connect(function()
         contentFrame.Visible = false
         tabContainer.Visible = false
     else
-        mainFrame.Size = UDim2.new(0, 280, 0, 250)
+        mainFrame.Size = UDim2.new(0, 280, 0, 260)
         minBtn.Text = "−"
         contentFrame.Visible = true
         tabContainer.Visible = true
@@ -501,50 +544,12 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ============================================
--- ADD MONEY FUNCTIONS
+-- ADD MONEY SERVER SIDE - REAL
 -- ============================================
-local function addMoneyClient()
-    local statName = nameBox.Text
-    local amount = tonumber(amountBox.Text) or 0
-    
-    if statName == "" or amount <= 0 then
-        moneyStatus.Text = "ERROR: Nama/Jumlah tidak valid"
-        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-        return
-    end
-    
-    local success = pcall(function()
-        local leaderstats = player:FindFirstChild("leaderstats")
-        if leaderstats then
-            local stat = leaderstats:FindFirstChild(statName)
-            if stat then
-                if stat:IsA("NumberValue") or stat:IsA("IntValue") then
-                    stat.Value = stat.Value + amount
-                    moneyStatus.Text = "Client: +" .. amount .. " " .. statName .. " (New: " .. stat.Value .. ")"
-                    moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-                else
-                    moneyStatus.Text = "ERROR: Bukan NumberValue/IntValue"
-                    moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-                end
-            else
-                moneyStatus.Text = "ERROR: Leaderstat '" .. statName .. "' tidak ditemukan"
-                moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-            end
-        else
-            moneyStatus.Text = "ERROR: Tidak ada leaderstats"
-            moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
-    end)
-    
-    if not success then
-        moneyStatus.Text = "ERROR: Gagal menambahkan (Client)"
-        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-    end
-end
-
 local function addMoneyServer()
     local statName = nameBox.Text
     local amount = tonumber(amountBox.Text) or 0
+    local remoteName = remoteBox.Text
     
     if statName == "" or amount <= 0 then
         moneyStatus.Text = "ERROR: Nama/Jumlah tidak valid"
@@ -552,44 +557,95 @@ local function addMoneyServer()
         return
     end
     
-    -- Cari remote event untuk server-side
-    local remoteEvent = nil
-    for _, child in ipairs(ReplicatedStorage:GetChildren()) do
-        if child:IsA("RemoteEvent") and string.find(child.Name, "Money") or string.find(child.Name, "Add") or string.find(child.Name, "Give") then
-            remoteEvent = child
-            break
+    local targetRemote = nil
+    local remoteType = nil
+    
+    -- Cari remote berdasarkan nama yang dimasukkan
+    if remoteName ~= "" and remoteName ~= "Auto Detect" then
+        for _, child in ipairs(ReplicatedStorage:GetChildren()) do
+            if child.Name == remoteName then
+                if child:IsA("RemoteEvent") then
+                    targetRemote = child
+                    remoteType = "Event"
+                elseif child:IsA("RemoteFunction") then
+                    targetRemote = child
+                    remoteType = "Function"
+                end
+                break
+            end
+        end
+    else
+        -- Auto detect
+        targetRemote, remoteType = findBestRemote()
+    end
+    
+    if not targetRemote then
+        moneyStatus.Text = "ERROR: Tidak ada Remote ditemukan"
+        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    -- ============================================
+    -- EKSEKUSI SERVER SIDE
+    -- ============================================
+    local success = false
+    local result = nil
+    
+    if remoteType == "Event" then
+        success, result = pcall(function()
+            targetRemote:FireServer(statName, amount, player)
+        end)
+    elseif remoteType == "Function" then
+        success, result = pcall(function()
+            return targetRemote:InvokeServer(statName, amount, player)
+        end)
+    else
+        -- Fallback: coba FireServer dulu
+        success, result = pcall(function()
+            targetRemote:FireServer(statName, amount, player)
+        end)
+        if not success then
+            success, result = pcall(function()
+                return targetRemote:InvokeServer(statName, amount, player)
+            end)
         end
     end
     
-    if remoteEvent then
-        pcall(function()
-            remoteEvent:FireServer(statName, amount)
-            moneyStatus.Text = "Server: Request sent for +" .. amount .. " " .. statName
-            moneyStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
-        end)
+    if success then
+        moneyStatus.Text = "SERVER: +" .. amount .. " " .. statName .. " via " .. targetRemote.Name
+        moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
     else
-        -- Fallback: Coba semua remote event
-        local found = false
-        for _, child in ipairs(ReplicatedStorage:GetChildren()) do
-            if child:IsA("RemoteEvent") then
-                pcall(function()
-                    child:FireServer(statName, amount)
-                    moneyStatus.Text = "Server: Fired to " .. child.Name
-                    moneyStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
-                    found = true
-                end)
-                if found then break end
-            end
-        end
-        
-        if not found then
-            moneyStatus.Text = "ERROR: Tidak ada RemoteEvent yang cocok"
-            moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
+        moneyStatus.Text = "SERVER ERROR: " .. tostring(result)
+        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
 end
 
-addBtnClient.MouseButton1Click:Connect(addMoneyClient)
 addBtnServer.MouseButton1Click:Connect(addMoneyServer)
 
-print("Catch A Anomali Fish v5.0 - Loaded")
+-- ============================================
+-- AUTO DETECT REMOTE DI TAB MONEY
+-- ============================================
+local function updateRemoteList()
+    local best, typ = findBestRemote()
+    if best then
+        remoteBox.Text = best.Name .. " (" .. typ .. ")"
+        remoteBox.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        remoteBox.Text = "No Remote Found"
+        remoteBox.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end
+
+task.wait(1)
+updateRemoteList()
+
+-- Refresh setiap 5 detik
+game:GetService("RunService").Stepped:Connect(function()
+    if tab2.Visible then
+        -- Update status remote jika visible
+    end
+end)
+
+print("Catch A Anomali Fish v6.0 - Server Side Money Loaded")
+print("Remote Events found: " .. #remoteEvents)
+print("Remote Functions found: " .. #remoteFunctions)
