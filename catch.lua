@@ -1,7 +1,6 @@
 -- ============================================
--- CATCH A ANOMALI FISH v9.0
--- SETTINGS FISH: 0s | 1s | 1.5s
--- NOCLIP BODY (Player Only)
+-- CATCH A ANOMALI FISH v10.0
+-- AUTO RESIZE (DPI Mobile) + UI FIX
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -13,6 +12,29 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 local giveToolEvent = ReplicatedStorage:WaitForChild("GiveTool")
+
+-- ============================================
+-- AUTO RESIZE berdasarkan DPI / Screen Size
+-- ============================================
+local screenSize = Workspace.CurrentCamera.ViewportSize
+local dpi = math.min(screenSize.X, screenSize.Y)
+
+local scale = 1
+if dpi < 500 then
+    scale = 0.6
+elseif dpi < 700 then
+    scale = 0.75
+elseif dpi < 900 then
+    scale = 0.9
+else
+    scale = 1
+end
+
+local GUI_WIDTH = math.floor(320 * scale)
+local GUI_HEIGHT = math.floor(380 * scale)
+local FONT_SIZE = math.floor(11 * scale)
+local SMALL_FONT = math.floor(9 * scale)
+local TITLE_SIZE = math.floor(12 * scale)
 
 -- ============================================
 -- DETECT REMOTES
@@ -55,7 +77,6 @@ end
 -- ============================================
 local noclipActive = false
 local noclipConnection = nil
-local originalCanCollide = {}
 
 -- ============================================
 -- GUI
@@ -67,8 +88,8 @@ screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 380)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -190)
+mainFrame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+mainFrame.Position = UDim2.new(0.5, -(GUI_WIDTH/2), 0.5, -(GUI_HEIGHT/2))
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -76,7 +97,7 @@ mainFrame.Parent = screenGui
 mainFrame.Active = true
 
 -- ============================================
--- DRAG SYSTEM (MOBILE + PC)
+-- DRAG SYSTEM
 -- ============================================
 local isDragging = false
 local dragStart = nil
@@ -155,7 +176,7 @@ shadow.Parent = mainFrame
 -- TITLE BAR
 -- ============================================
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 28)
+titleBar.Size = UDim2.new(1, 0, 0, math.floor(28 * scale))
 titleBar.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
@@ -166,28 +187,28 @@ titleText.Position = UDim2.new(0, 8, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "ANOMALI FISH"
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.TextSize = 12
+titleText.TextSize = TITLE_SIZE
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
 titleText.Parent = titleBar
 
 local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 24, 0, 24)
-minBtn.Position = UDim2.new(1, -28, 0, 2)
+minBtn.Size = UDim2.new(0, math.floor(24 * scale), 0, math.floor(24 * scale))
+minBtn.Position = UDim2.new(1, -math.floor(28 * scale), 0, math.floor(2 * scale))
 minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 minBtn.BorderSizePixel = 0
 minBtn.Text = "−"
 minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minBtn.TextSize = 14
+minBtn.TextSize = TITLE_SIZE
 minBtn.Font = Enum.Font.GothamBold
 minBtn.Parent = titleBar
 
 -- ============================================
--- TAB BUTTONS (5 Tab)
+-- TAB BUTTONS
 -- ============================================
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, 0, 0, 28)
-tabContainer.Position = UDim2.new(0, 0, 0, 28)
+tabContainer.Size = UDim2.new(1, 0, 0, math.floor(28 * scale))
+tabContainer.Position = UDim2.new(0, 0, 0, math.floor(28 * scale))
 tabContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 tabContainer.BorderSizePixel = 0
 tabContainer.Parent = mainFrame
@@ -198,19 +219,19 @@ local tabData = {
     {name = "Pick", id = "tab2"},
     {name = "Sell", id = "tab3"},
     {name = "Money", id = "tab4"},
-    {name = "Setting", id = "tab5"}
+    {name = "Set", id = "tab5"}
 }
 
 for i, data in ipairs(tabData) do
     local btn = Instance.new("TextButton")
     btn.Name = data.id
-    btn.Size = UDim2.new(0, 56, 1, -4)
-    btn.Position = UDim2.new(0, 4 + (i-1)*60, 0, 2)
+    btn.Size = UDim2.new(0, math.floor(56 * scale), 1, -math.floor(4 * scale))
+    btn.Position = UDim2.new(0, math.floor(4 * scale + (i-1) * 60 * scale), 0, math.floor(2 * scale))
     btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     btn.BorderSizePixel = 0
     btn.Text = data.name
     btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    btn.TextSize = 8
+    btn.TextSize = math.floor(8 * scale)
     btn.Font = Enum.Font.GothamSemibold
     btn.Parent = tabContainer
     
@@ -229,8 +250,8 @@ end
 -- CONTENT FRAME
 -- ============================================
 local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -12, 1, -68)
-contentFrame.Position = UDim2.new(0, 6, 0, 60)
+contentFrame.Size = UDim2.new(1, -math.floor(12 * scale), 1, -math.floor(68 * scale))
+contentFrame.Position = UDim2.new(0, math.floor(6 * scale), 0, math.floor(60 * scale))
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
@@ -244,64 +265,63 @@ tab1.Visible = false
 tab1.Parent = contentFrame
 
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 160, 0, 30)
-toggleBtn.Position = UDim2.new(0.5, -80, 0, 4)
+toggleBtn.Size = UDim2.new(0, math.floor(160 * scale), 0, math.floor(30 * scale))
+toggleBtn.Position = UDim2.new(0.5, -math.floor(80 * scale), 0, math.floor(4 * scale))
 toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "▶ START FISH"
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 11
+toggleBtn.TextSize = FONT_SIZE
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.Parent = tab1
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -10, 0, 18)
-statusLabel.Position = UDim2.new(0, 5, 0, 40)
+statusLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(18 * scale))
+statusLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(40 * scale))
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = "Status: OFF"
 statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-statusLabel.TextSize = 11
+statusLabel.TextSize = FONT_SIZE
 statusLabel.Font = Enum.Font.GothamSemibold
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = tab1
 
 local queueLabel = Instance.new("TextLabel")
-queueLabel.Size = UDim2.new(1, -10, 0, 16)
-queueLabel.Position = UDim2.new(0, 5, 0, 60)
+queueLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+queueLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(60 * scale))
 queueLabel.BackgroundTransparency = 1
 queueLabel.Text = "Queue: 0/5 | Speed: 0s"
 queueLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-queueLabel.TextSize = 10
+queueLabel.TextSize = SMALL_FONT
 queueLabel.Font = Enum.Font.Gotham
 queueLabel.TextXAlignment = Enum.TextXAlignment.Left
 queueLabel.Parent = tab1
 
 local keyLabel = Instance.new("TextLabel")
-keyLabel.Size = UDim2.new(1, -10, 0, 14)
-keyLabel.Position = UDim2.new(0, 5, 0, 78)
+keyLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(14 * scale))
+keyLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(78 * scale))
 keyLabel.BackgroundTransparency = 1
 keyLabel.Text = "F toggle"
 keyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-keyLabel.TextSize = 9
+keyLabel.TextSize = math.floor(8 * scale)
 keyLabel.Font = Enum.Font.Gotham
 keyLabel.TextXAlignment = Enum.TextXAlignment.Left
 keyLabel.Parent = tab1
 
--- Speed Settings di dalam Tab Fish
 local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1, -10, 0, 16)
-speedLabel.Position = UDim2.new(0, 5, 0, 100)
+speedLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+speedLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(100 * scale))
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = "LOOP SPEED"
 speedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-speedLabel.TextSize = 10
+speedLabel.TextSize = SMALL_FONT
 speedLabel.Font = Enum.Font.GothamBold
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 speedLabel.Parent = tab1
 
 local speedContainer = Instance.new("Frame")
-speedContainer.Size = UDim2.new(1, -10, 0, 28)
-speedContainer.Position = UDim2.new(0, 5, 0, 118)
+speedContainer.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(28 * scale))
+speedContainer.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(118 * scale))
 speedContainer.BackgroundTransparency = 1
 speedContainer.Parent = tab1
 
@@ -311,13 +331,13 @@ local speedButtons = {}
 
 for i, val in ipairs(speedOptions) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 70, 1, 0)
-    btn.Position = UDim2.new(0, (i-1)*75, 0, 0)
+    btn.Size = UDim2.new(0, math.floor(70 * scale), 1, 0)
+    btn.Position = UDim2.new(0, (i-1) * math.floor(75 * scale), 0, 0)
     btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     btn.BorderSizePixel = 0
     btn.Text = val .. "s"
     btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.TextSize = 11
+    btn.TextSize = FONT_SIZE
     btn.Font = Enum.Font.GothamBold
     btn.Parent = speedContainer
     
@@ -330,7 +350,6 @@ for i, val in ipairs(speedOptions) do
     
     btn.MouseButton1Click:Connect(function()
         selectedSpeed = val
-        -- Update semua button
         for speed, button in pairs(speedButtons) do
             if speed == val then
                 button.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
@@ -341,10 +360,8 @@ for i, val in ipairs(speedOptions) do
             end
         end
         queueLabel.Text = "Queue: 0/5 | Speed: " .. val .. "s"
-        
-        -- Update interval jika auto fish running
         if autoFishRunning then
-            processInterval = val + 0.5 -- Minimum 0.5s delay
+            processInterval = val + 0.5
             if processInterval < 0.5 then processInterval = 0.5 end
         end
     end)
@@ -360,45 +377,45 @@ tab2.Visible = false
 tab2.Parent = contentFrame
 
 local pickToggle = Instance.new("TextButton")
-pickToggle.Size = UDim2.new(0, 160, 0, 30)
-pickToggle.Position = UDim2.new(0.5, -80, 0, 8)
+pickToggle.Size = UDim2.new(0, math.floor(160 * scale), 0, math.floor(30 * scale))
+pickToggle.Position = UDim2.new(0.5, -math.floor(80 * scale), 0, math.floor(8 * scale))
 pickToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 pickToggle.BorderSizePixel = 0
 pickToggle.Text = "▶ AUTO PICK"
 pickToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-pickToggle.TextSize = 11
+pickToggle.TextSize = FONT_SIZE
 pickToggle.Font = Enum.Font.GothamBold
 pickToggle.Parent = tab2
 
 local pickStatus = Instance.new("TextLabel")
-pickStatus.Size = UDim2.new(1, -10, 0, 18)
-pickStatus.Position = UDim2.new(0, 5, 0, 45)
+pickStatus.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(18 * scale))
+pickStatus.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(45 * scale))
 pickStatus.BackgroundTransparency = 1
 pickStatus.Text = "Status: OFF"
 pickStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-pickStatus.TextSize = 11
+pickStatus.TextSize = FONT_SIZE
 pickStatus.Font = Enum.Font.GothamSemibold
 pickStatus.TextXAlignment = Enum.TextXAlignment.Left
 pickStatus.Parent = tab2
 
 local pickToolLabel = Instance.new("TextLabel")
-pickToolLabel.Size = UDim2.new(1, -10, 0, 16)
-pickToolLabel.Position = UDim2.new(0, 5, 0, 65)
+pickToolLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+pickToolLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(65 * scale))
 pickToolLabel.BackgroundTransparency = 1
 pickToolLabel.Text = "Tool: None"
 pickToolLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-pickToolLabel.TextSize = 10
+pickToolLabel.TextSize = SMALL_FONT
 pickToolLabel.Font = Enum.Font.Gotham
 pickToolLabel.TextXAlignment = Enum.TextXAlignment.Left
 pickToolLabel.Parent = tab2
 
 local pickKeyLabel = Instance.new("TextLabel")
-pickKeyLabel.Size = UDim2.new(1, -10, 0, 14)
-pickKeyLabel.Position = UDim2.new(0, 5, 0, 83)
+pickKeyLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(14 * scale))
+pickKeyLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(83 * scale))
 pickKeyLabel.BackgroundTransparency = 1
 pickKeyLabel.Text = "Z toggle"
 pickKeyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-pickKeyLabel.TextSize = 9
+pickKeyLabel.TextSize = math.floor(8 * scale)
 pickKeyLabel.Font = Enum.Font.Gotham
 pickKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 pickKeyLabel.Parent = tab2
@@ -413,56 +430,56 @@ tab3.Visible = false
 tab3.Parent = contentFrame
 
 local sellToggle = Instance.new("TextButton")
-sellToggle.Size = UDim2.new(0, 160, 0, 30)
-sellToggle.Position = UDim2.new(0.5, -80, 0, 8)
+sellToggle.Size = UDim2.new(0, math.floor(160 * scale), 0, math.floor(30 * scale))
+sellToggle.Position = UDim2.new(0.5, -math.floor(80 * scale), 0, math.floor(8 * scale))
 sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 sellToggle.BorderSizePixel = 0
 sellToggle.Text = "▶ AUTO SELL"
 sellToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-sellToggle.TextSize = 11
+sellToggle.TextSize = FONT_SIZE
 sellToggle.Font = Enum.Font.GothamBold
 sellToggle.Parent = tab3
 
 local sellStatus = Instance.new("TextLabel")
-sellStatus.Size = UDim2.new(1, -10, 0, 18)
-sellStatus.Position = UDim2.new(0, 5, 0, 45)
+sellStatus.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(18 * scale))
+sellStatus.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(45 * scale))
 sellStatus.BackgroundTransparency = 1
 sellStatus.Text = "Status: OFF"
 sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-sellStatus.TextSize = 11
+sellStatus.TextSize = FONT_SIZE
 sellStatus.Font = Enum.Font.GothamSemibold
 sellStatus.TextXAlignment = Enum.TextXAlignment.Left
 sellStatus.Parent = tab3
 
 local sellPromptLabel = Instance.new("TextLabel")
-sellPromptLabel.Size = UDim2.new(1, -10, 0, 16)
-sellPromptLabel.Position = UDim2.new(0, 5, 0, 65)
+sellPromptLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+sellPromptLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(65 * scale))
 sellPromptLabel.BackgroundTransparency = 1
 sellPromptLabel.Text = "Prompt: None"
 sellPromptLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-sellPromptLabel.TextSize = 10
+sellPromptLabel.TextSize = SMALL_FONT
 sellPromptLabel.Font = Enum.Font.Gotham
 sellPromptLabel.TextXAlignment = Enum.TextXAlignment.Left
 sellPromptLabel.Parent = tab3
 
 local sellCountLabel = Instance.new("TextLabel")
-sellCountLabel.Size = UDim2.new(1, -10, 0, 16)
-sellCountLabel.Position = UDim2.new(0, 5, 0, 83)
+sellCountLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+sellCountLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(83 * scale))
 sellCountLabel.BackgroundTransparency = 1
 sellCountLabel.Text = "Spam: 0x"
 sellCountLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-sellCountLabel.TextSize = 10
+sellCountLabel.TextSize = SMALL_FONT
 sellCountLabel.Font = Enum.Font.Gotham
 sellCountLabel.TextXAlignment = Enum.TextXAlignment.Left
 sellCountLabel.Parent = tab3
 
 local sellKeyLabel = Instance.new("TextLabel")
-sellKeyLabel.Size = UDim2.new(1, -10, 0, 14)
-sellKeyLabel.Position = UDim2.new(0, 5, 0, 102)
+sellKeyLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(14 * scale))
+sellKeyLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(102 * scale))
 sellKeyLabel.BackgroundTransparency = 1
 sellKeyLabel.Text = "X toggle"
 sellKeyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-sellKeyLabel.TextSize = 9
+sellKeyLabel.TextSize = math.floor(8 * scale)
 sellKeyLabel.Font = Enum.Font.Gotham
 sellKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 sellKeyLabel.Parent = tab3
@@ -477,78 +494,78 @@ tab4.Visible = false
 tab4.Parent = contentFrame
 
 local moneyLabel = Instance.new("TextLabel")
-moneyLabel.Size = UDim2.new(1, -10, 0, 16)
-moneyLabel.Position = UDim2.new(0, 5, 0, 2)
+moneyLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+moneyLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(2 * scale))
 moneyLabel.BackgroundTransparency = 1
 moneyLabel.Text = "LEADERSTAT NAME"
 moneyLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-moneyLabel.TextSize = 9
+moneyLabel.TextSize = SMALL_FONT
 moneyLabel.Font = Enum.Font.GothamBold
 moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
 moneyLabel.Parent = tab4
 
 local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(1, -10, 0, 22)
-nameBox.Position = UDim2.new(0, 5, 0, 20)
+nameBox.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(22 * scale))
+nameBox.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(20 * scale))
 nameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 nameBox.BorderSizePixel = 0
 nameBox.Text = "Cash"
 nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-nameBox.TextSize = 11
+nameBox.TextSize = FONT_SIZE
 nameBox.Font = Enum.Font.Gotham
 nameBox.TextXAlignment = Enum.TextXAlignment.Left
 nameBox.PlaceholderText = "Nama Leaderstat"
 nameBox.Parent = tab4
 
 local amountLabel = Instance.new("TextLabel")
-amountLabel.Size = UDim2.new(1, -10, 0, 14)
-amountLabel.Position = UDim2.new(0, 5, 0, 46)
+amountLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(14 * scale))
+amountLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(46 * scale))
 amountLabel.BackgroundTransparency = 1
 amountLabel.Text = "AMOUNT"
 amountLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-amountLabel.TextSize = 9
+amountLabel.TextSize = SMALL_FONT
 amountLabel.Font = Enum.Font.GothamBold
 amountLabel.TextXAlignment = Enum.TextXAlignment.Left
 amountLabel.Parent = tab4
 
 local amountBox = Instance.new("TextBox")
-amountBox.Size = UDim2.new(1, -10, 0, 22)
-amountBox.Position = UDim2.new(0, 5, 0, 62)
+amountBox.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(22 * scale))
+amountBox.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(62 * scale))
 amountBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 amountBox.BorderSizePixel = 0
 amountBox.Text = "1000"
 amountBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-amountBox.TextSize = 11
+amountBox.TextSize = FONT_SIZE
 amountBox.Font = Enum.Font.Gotham
 amountBox.TextXAlignment = Enum.TextXAlignment.Left
 amountBox.PlaceholderText = "Jumlah"
 amountBox.Parent = tab4
 
 local addBtnServer = Instance.new("TextButton")
-addBtnServer.Size = UDim2.new(1, -20, 0, 28)
-addBtnServer.Position = UDim2.new(0, 10, 0, 90)
+addBtnServer.Size = UDim2.new(1, -math.floor(20 * scale), 0, math.floor(28 * scale))
+addBtnServer.Position = UDim2.new(0, math.floor(10 * scale), 0, math.floor(90 * scale))
 addBtnServer.BackgroundColor3 = Color3.fromRGB(200, 80, 0)
 addBtnServer.BorderSizePixel = 0
 addBtnServer.Text = "ADD MONEY (SERVER)"
 addBtnServer.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtnServer.TextSize = 10
+addBtnServer.TextSize = SMALL_FONT
 addBtnServer.Font = Enum.Font.GothamBold
 addBtnServer.Parent = tab4
 
 local moneyStatus = Instance.new("TextLabel")
-moneyStatus.Size = UDim2.new(1, -10, 0, 40)
-moneyStatus.Position = UDim2.new(0, 5, 0, 124)
+moneyStatus.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(40 * scale))
+moneyStatus.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(124 * scale))
 moneyStatus.BackgroundTransparency = 1
 moneyStatus.Text = "Ready"
 moneyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-moneyStatus.TextSize = 9
+moneyStatus.TextSize = SMALL_FONT
 moneyStatus.Font = Enum.Font.Gotham
 moneyStatus.TextXAlignment = Enum.TextXAlignment.Left
 moneyStatus.TextWrapped = true
 moneyStatus.Parent = tab4
 
 -- ============================================
--- TAB 5: SETTINGS / BYPASS
+-- TAB 5: SETTINGS
 -- ============================================
 local tab5 = Instance.new("Frame")
 tab5.Size = UDim2.new(1, 0, 1, 0)
@@ -557,46 +574,45 @@ tab5.Visible = false
 tab5.Parent = contentFrame
 
 local bypassLabel = Instance.new("TextLabel")
-bypassLabel.Size = UDim2.new(1, -10, 0, 20)
-bypassLabel.Position = UDim2.new(0, 5, 0, 5)
+bypassLabel.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(20 * scale))
+bypassLabel.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(5 * scale))
 bypassLabel.BackgroundTransparency = 1
 bypassLabel.Text = "BYPASS"
 bypassLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-bypassLabel.TextSize = 13
+bypassLabel.TextSize = math.floor(13 * scale)
 bypassLabel.Font = Enum.Font.GothamBold
 bypassLabel.TextXAlignment = Enum.TextXAlignment.Left
 bypassLabel.Parent = tab5
 
--- Noclip Body Toggle
 local noclipToggle = Instance.new("TextButton")
-noclipToggle.Size = UDim2.new(0, 180, 0, 30)
-noclipToggle.Position = UDim2.new(0.5, -90, 0, 35)
+noclipToggle.Size = UDim2.new(0, math.floor(180 * scale), 0, math.floor(30 * scale))
+noclipToggle.Position = UDim2.new(0.5, -math.floor(90 * scale), 0, math.floor(35 * scale))
 noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 noclipToggle.BorderSizePixel = 0
 noclipToggle.Text = "▶ NOCLIP BODY (OFF)"
 noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-noclipToggle.TextSize = 11
+noclipToggle.TextSize = FONT_SIZE
 noclipToggle.Font = Enum.Font.GothamBold
 noclipToggle.Parent = tab5
 
 local noclipStatus = Instance.new("TextLabel")
-noclipStatus.Size = UDim2.new(1, -10, 0, 16)
-noclipStatus.Position = UDim2.new(0, 5, 0, 72)
+noclipStatus.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(16 * scale))
+noclipStatus.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(72 * scale))
 noclipStatus.BackgroundTransparency = 1
 noclipStatus.Text = "Status: OFF (Only affects other players)"
 noclipStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-noclipStatus.TextSize = 10
+noclipStatus.TextSize = SMALL_FONT
 noclipStatus.Font = Enum.Font.Gotham
 noclipStatus.TextXAlignment = Enum.TextXAlignment.Left
 noclipStatus.Parent = tab5
 
 local noclipInfo = Instance.new("TextLabel")
-noclipInfo.Size = UDim2.new(1, -10, 0, 30)
-noclipInfo.Position = UDim2.new(0, 5, 0, 92)
+noclipInfo.Size = UDim2.new(1, -math.floor(10 * scale), 0, math.floor(30 * scale))
+noclipInfo.Position = UDim2.new(0, math.floor(5 * scale), 0, math.floor(92 * scale))
 noclipInfo.BackgroundTransparency = 1
 noclipInfo.Text = "Mencegah body player lain menyentuh body kita\nTidak berpengaruh pada Basepart/Environment"
 noclipInfo.TextColor3 = Color3.fromRGB(100, 100, 100)
-noclipInfo.TextSize = 9
+noclipInfo.TextSize = math.floor(8 * scale)
 noclipInfo.Font = Enum.Font.Gotham
 noclipInfo.TextXAlignment = Enum.TextXAlignment.Left
 noclipInfo.TextWrapped = true
@@ -647,12 +663,12 @@ local isMinimized = false
 minBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        mainFrame.Size = UDim2.new(0, 320, 0, 28)
+        mainFrame.Size = UDim2.new(0, GUI_WIDTH, 0, math.floor(28 * scale))
         minBtn.Text = "+"
         contentFrame.Visible = false
         tabContainer.Visible = false
     else
-        mainFrame.Size = UDim2.new(0, 320, 0, 380)
+        mainFrame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
         minBtn.Text = "−"
         contentFrame.Visible = true
         tabContainer.Visible = true
@@ -672,34 +688,24 @@ local function toggleNoclip()
         noclipStatus.Text = "Status: ACTIVE (Other players cannot touch you)"
         noclipStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
         
-        -- Start Noclip
         noclipConnection = RunService.Heartbeat:Connect(function()
             if not noclipActive then return end
-            
             local char = player.Character
             if not char then return end
             
-            -- Cari semua player lain
             for _, otherPlayer in ipairs(Players:GetPlayers()) do
                 if otherPlayer ~= player then
                     local otherChar = otherPlayer.Character
                     if otherChar then
-                        -- Loop semua part di karakter lain
                         for _, part in ipairs(otherChar:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                -- Set CanCollide false hanya untuk part yang bersentuhan dengan kita
-                                -- Dan hanya jika part tersebut adalah bagian dari karakter
-                                if part.Parent == otherChar or part:IsDescendantOf(otherChar) then
-                                    -- Cek apakah part bertabrakan dengan character kita
-                                    local ourParts = char:GetDescendants()
-                                    for _, ourPart in ipairs(ourParts) do
-                                        if ourPart:IsA("BasePart") and ourPart.Parent == char then
-                                            -- Disable collision antara part kita dan part mereka
-                                            pcall(function()
-                                                ourPart.CanCollide = false
-                                                part.CanCollide = false
-                                            end)
-                                        end
+                            if part:IsA("BasePart") and part.Parent == otherChar then
+                                local ourParts = char:GetDescendants()
+                                for _, ourPart in ipairs(ourParts) do
+                                    if ourPart:IsA("BasePart") and ourPart.Parent == char then
+                                        pcall(function()
+                                            ourPart.CanCollide = false
+                                            part.CanCollide = false
+                                        end)
                                     end
                                 end
                             end
@@ -708,7 +714,6 @@ local function toggleNoclip()
                 end
             end
         end)
-        
     else
         noclipToggle.Text = "▶ NOCLIP BODY (OFF)"
         noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -721,7 +726,6 @@ local function toggleNoclip()
             noclipConnection = nil
         end
         
-        -- Reset CanCollide
         local char = player.Character
         if char then
             for _, part in ipairs(char:GetDescendants()) do
@@ -737,7 +741,6 @@ end
 
 noclipToggle.MouseButton1Click:Connect(toggleNoclip)
 
--- Keybind Numpad 0 untuk Noclip
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.KeypadZero then
@@ -746,7 +749,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ============================================
--- AUTO FISH LOGIC (Dengan Speed Settings)
+-- AUTO FISH LOGIC
 -- ============================================
 local autoFishRunning = false
 local autoFishConnection = nil
@@ -810,7 +813,6 @@ local function toggleAutoFish()
         requestQueue = {}
         isProcessing = false
         
-        -- Set interval based on selected speed
         processInterval = selectedSpeed + 0.5
         if processInterval < 0.5 then processInterval = 0.5 end
         
@@ -1134,5 +1136,6 @@ else
     moneyStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
 end
 
-print("Catch A Anomali Fish v9.0 - Loaded")
+print("Catch A Anomali Fish v10.0 - Auto Resize Loaded")
+print("Scale: " .. scale .. " | DPI: " .. dpi)
 print("F = Auto Fish | Z = Auto Pick | X = Auto Sell | Numpad0 = Noclip")
