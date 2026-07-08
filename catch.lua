@@ -815,3 +815,324 @@ local function toggleAutoFish()
         if processInterval < 0.5 then processInterval = 0.5 end
         
         autoFishConnection = RunService.Heartbeat:Connect(function()
+            if autoFishRunning then
+                queueRequest()
+            end
+        end)
+        
+        task.wait(0.5)
+        queueRequest()
+    else
+        toggleBtn.Text = "▶ START FISH"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        statusLabel.Text = "Status: OFF"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        if autoFishConnection then
+            autoFishConnection:Disconnect()
+            autoFishConnection = nil
+        end
+        requestQueue = {}
+        isProcessing = false
+    end
+end
+
+toggleBtn.MouseButton1Click:Connect(toggleAutoFish)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        toggleAutoFish()
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if autoFishRunning then
+        queueLabel.Text = "Queue: " .. #requestQueue .. "/" .. MAX_QUEUE_SIZE .. " | Speed: " .. selectedSpeed .. "s"
+    else
+        queueLabel.Text = "Queue: 0/" .. MAX_QUEUE_SIZE .. " | Speed: " .. selectedSpeed .. "s"
+    end
+end)
+
+-- ============================================
+-- AUTO PICK LOGIC
+-- ============================================
+local autoPickRunning = false
+local autoPickConnection = nil
+
+local function getRandomTool()
+    local tools = {}
+    
+    if character then
+        for _, child in ipairs(character:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
+        end
+    end
+    
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, child in ipairs(backpack:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
+        end
+    end
+    
+    if #tools > 0 then
+        return tools[math.random(1, #tools)]
+    end
+    return nil
+end
+
+local function equipTool(tool)
+    if not tool then return false end
+    if tool.Parent == character then return true end
+    tool.Parent = character
+    return true
+end
+
+local function getEquippedTool()
+    if not character then return nil end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            return child
+        end
+    end
+    return nil
+end
+
+local function doPick()
+    if not autoPickRunning then return end
+    
+    local equipped = getEquippedTool()
+    
+    if equipped then
+        pickToolLabel.Text = "Tool: " .. equipped.Name .. " (already)"
+        pickToolLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        return
+    end
+    
+    local randomTool = getRandomTool()
+    if randomTool then
+        equipTool(randomTool)
+        pickToolLabel.Text = "Tool: " .. randomTool.Name .. " (equipped)"
+        pickToolLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        pickToolLabel.Text = "Tool: No tool available"
+        pickToolLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end
+
+local function toggleAutoPick()
+    autoPickRunning = not autoPickRunning
+    
+    if autoPickRunning then
+        pickToggle.Text = "⏹ STOP PICK"
+        pickToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        pickStatus.Text = "Status: ACTIVE"
+        pickStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        autoPickConnection = RunService.Heartbeat:Connect(function()
+            if autoPickRunning then
+                doPick()
+                task.wait(1)
+            end
+        end)
+        
+        task.wait(0.3)
+        doPick()
+    else
+        pickToggle.Text = "▶ AUTO PICK"
+        pickToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        pickStatus.Text = "Status: OFF"
+        pickStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+        pickToolLabel.Text = "Tool: None"
+        pickToolLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        if autoPickConnection then
+            autoPickConnection:Disconnect()
+            autoPickConnection = nil
+        end
+    end
+end
+
+pickToggle.MouseButton1Click:Connect(toggleAutoPick)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.Z then
+        toggleAutoPick()
+    end
+end)
+
+-- ============================================
+-- AUTO SELL LOGIC
+-- ============================================
+local autoSellRunning = false
+local autoSellConnection = nil
+local sellSpamCount = 0
+
+local function findSellPrompts()
+    local prompts = {}
+    local function search(obj)
+        for _, child in ipairs(obj:GetChildren()) do
+            if child:IsA("ProximityPrompt") then
+                local action = child.ActionText or ""
+                if string.find(string.lower(action), "sell") or 
+                   string.find(string.lower(action), "jual") then
+                    table.insert(prompts, child)
+                end
+            end
+            search(child)
+        end
+    end
+    search(Workspace)
+    return prompts
+end
+
+local function doSellSpam()
+    if not autoSellRunning then return end
+    
+    local prompts = findSellPrompts()
+    
+    if #prompts > 0 then
+        for _, prompt in ipairs(prompts) do
+            sellPromptLabel.Text = "Prompt: " .. prompt.ActionText .. " (" .. prompt.Parent.Name .. ")"
+            sellPromptLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            pcall(function()
+                prompt.HoldDuration = 0
+            end)
+            
+            for i = 1, 5 do
+                if not autoSellRunning then break end
+                
+                pcall(function()
+                    prompt:InputHold()
+                    task.wait(0.02)
+                    prompt:InputRelease()
+                end)
+                
+                sellSpamCount = sellSpamCount + 1
+                sellCountLabel.Text = "Spam: " .. sellSpamCount .. "x"
+                
+                task.wait(0.05)
+            end
+        end
+    else
+        sellPromptLabel.Text = "Prompt: No sell prompt found"
+        sellPromptLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end
+
+local function toggleAutoSell()
+    autoSellRunning = not autoSellRunning
+    
+    if autoSellRunning then
+        sellToggle.Text = "⏹ STOP SELL"
+        sellToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        sellStatus.Text = "Status: ACTIVE"
+        sellStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+        sellSpamCount = 0
+        
+        autoSellConnection = RunService.Heartbeat:Connect(function()
+            if autoSellRunning then
+                doSellSpam()
+                task.wait(0.8)
+            end
+        end)
+        
+        task.wait(0.3)
+        doSellSpam()
+    else
+        sellToggle.Text = "▶ AUTO SELL"
+        sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        sellStatus.Text = "Status: OFF"
+        sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+        sellPromptLabel.Text = "Prompt: None"
+        sellPromptLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        if autoSellConnection then
+            autoSellConnection:Disconnect()
+            autoSellConnection = nil
+        end
+    end
+end
+
+sellToggle.MouseButton1Click:Connect(toggleAutoSell)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        toggleAutoSell()
+    end
+end)
+
+-- ============================================
+-- ADD MONEY SERVER
+-- ============================================
+local function addMoneyServer()
+    local statName = nameBox.Text
+    local amount = tonumber(amountBox.Text) or 0
+    
+    if statName == "" or amount <= 0 then
+        moneyStatus.Text = "ERROR: Nama/Jumlah tidak valid"
+        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local targetRemote, remoteType = findBestRemote()
+    
+    if not targetRemote then
+        moneyStatus.Text = "ERROR: Tidak ada Remote ditemukan"
+        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local success = false
+    local result = nil
+    
+    if remoteType == "Event" then
+        success, result = pcall(function()
+            targetRemote:FireServer(statName, amount, player)
+        end)
+    elseif remoteType == "Function" then
+        success, result = pcall(function()
+            return targetRemote:InvokeServer(statName, amount, player)
+        end)
+    else
+        success, result = pcall(function()
+            targetRemote:FireServer(statName, amount, player)
+        end)
+        if not success then
+            success, result = pcall(function()
+                return targetRemote:InvokeServer(statName, amount, player)
+            end)
+        end
+    end
+    
+    if success then
+        moneyStatus.Text = "SERVER: +" .. amount .. " " .. statName .. " via " .. targetRemote.Name
+        moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        moneyStatus.Text = "SERVER ERROR: " .. tostring(result)
+        moneyStatus.TextColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+addBtnServer.MouseButton1Click:Connect(addMoneyServer)
+
+task.wait(1)
+local best, typ = findBestRemote()
+if best then
+    moneyStatus.Text = "Remote: " .. best.Name .. " (" .. typ .. ") | Ready"
+    moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+else
+    moneyStatus.Text = "No Remote Found"
+    moneyStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+end
+
+print("Catch A Anomali Fish v9.0 - Loaded")
+print("F = Auto Fish | Z = Auto Pick | X = Auto Sell | Numpad0 = Noclip")
