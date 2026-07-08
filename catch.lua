@@ -1,13 +1,16 @@
 -- ============================================
--- CATCH A ANOMALI FISH v6.0 - SERVER SIDE MONEY
--- REMOTE EVENT + REMOTE FUNCTION FULL
+-- CATCH A ANOMALI FISH v7.0
+-- DRAG ANYWHERE | AUTO SELL | NO CLOSE BUTTON
 -- ============================================
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local mouse = player:GetMouse()
 
 local giveToolEvent = ReplicatedStorage:WaitForChild("GiveTool")
 
@@ -25,11 +28,8 @@ for _, child in ipairs(ReplicatedStorage:GetChildren()) do
     end
 end
 
--- Cari remote yang paling mungkin untuk money
 local function findBestRemote()
-    -- Prioritaskan yang namanya mengandung keyword
     local keywords = {"Money", "Add", "Give", "Set", "Update", "Stat", "Leader", "Cash", "Coin", "Gold"}
-    
     for _, kw in ipairs(keywords) do
         for _, remote in ipairs(remoteEvents) do
             if string.find(remote.Name, kw) then
@@ -42,19 +42,16 @@ local function findBestRemote()
             end
         end
     end
-    
-    -- Fallback: ambil remote pertama
     if #remoteEvents > 0 then
         return remoteEvents[1], "Event"
     elseif #remoteFunctions > 0 then
         return remoteFunctions[1], "Function"
     end
-    
     return nil, nil
 end
 
 -- ============================================
--- GUI SIZE KECIL (280x260)
+-- GUI
 -- ============================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CatchAnomaliGUI"
@@ -63,8 +60,8 @@ screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 280, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
+mainFrame.Size = UDim2.new(0, 280, 0, 280)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -140)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -82,7 +79,40 @@ shadow.SliceCenter = Rect.new(10, 10, 10, 10)
 shadow.Parent = mainFrame
 
 -- ============================================
--- TITLE BAR
+-- DRAG ANYWHERE (seluruh frame)
+-- ============================================
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+
+mainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ============================================
+-- TITLE BAR (tanpa close, hanya min)
 -- ============================================
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 28)
@@ -91,7 +121,7 @@ titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -60, 1, 0)
+titleText.Size = UDim2.new(1, -40, 1, 0)
 titleText.Position = UDim2.new(0, 8, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "ANOMALI FISH"
@@ -102,8 +132,8 @@ titleText.Font = Enum.Font.GothamBold
 titleText.Parent = titleBar
 
 local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 22, 0, 22)
-minBtn.Position = UDim2.new(1, -48, 0, 3)
+minBtn.Size = UDim2.new(0, 24, 0, 24)
+minBtn.Position = UDim2.new(1, -28, 0, 2)
 minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 minBtn.BorderSizePixel = 0
 minBtn.Text = "−"
@@ -111,30 +141,6 @@ minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minBtn.TextSize = 14
 minBtn.Font = Enum.Font.GothamBold
 minBtn.Parent = titleBar
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 22, 0, 22)
-closeBtn.Position = UDim2.new(1, -26, 0, 3)
-closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-closeBtn.BorderSizePixel = 0
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextSize = 12
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.Parent = titleBar
-
-local openBtn = Instance.new("TextButton")
-openBtn.Name = "OpenBtn"
-openBtn.Size = UDim2.new(0, 80, 0, 30)
-openBtn.Position = UDim2.new(0.5, -40, 0.5, -15)
-openBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-openBtn.BorderSizePixel = 0
-openBtn.Text = "[OPEN]"
-openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-openBtn.TextSize = 14
-openBtn.Font = Enum.Font.GothamBold
-openBtn.Visible = false
-openBtn.Parent = screenGui
 
 -- ============================================
 -- TAB BUTTONS
@@ -149,19 +155,20 @@ tabContainer.Parent = mainFrame
 local tabs = {}
 local tabData = {
     {name = "Auto", id = "tab1"},
-    {name = "Money", id = "tab2"}
+    {name = "Sell", id = "tab2"},
+    {name = "Money", id = "tab3"}
 }
 
 for i, data in ipairs(tabData) do
     local btn = Instance.new("TextButton")
     btn.Name = data.id
-    btn.Size = UDim2.new(0, 80, 1, -4)
-    btn.Position = UDim2.new(0, 8 + (i-1)*85, 0, 2)
+    btn.Size = UDim2.new(0, 75, 1, -4)
+    btn.Position = UDim2.new(0, 6 + (i-1)*80, 0, 2)
     btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     btn.BorderSizePixel = 0
     btn.Text = data.name
     btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.Font = Enum.Font.GothamSemibold
     btn.Parent = tabContainer
     
@@ -239,13 +246,77 @@ keyLabel.TextXAlignment = Enum.TextXAlignment.Left
 keyLabel.Parent = tab1
 
 -- ============================================
--- TAB 2: ADD MONEY (SERVER SIDE ONLY)
+-- TAB 2: AUTO SELL
 -- ============================================
 local tab2 = Instance.new("Frame")
 tab2.Size = UDim2.new(1, 0, 1, 0)
 tab2.BackgroundTransparency = 1
 tab2.Visible = false
 tab2.Parent = contentFrame
+
+local sellToggle = Instance.new("TextButton")
+sellToggle.Size = UDim2.new(0, 160, 0, 30)
+sellToggle.Position = UDim2.new(0.5, -80, 0, 8)
+sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+sellToggle.BorderSizePixel = 0
+sellToggle.Text = "▶ AUTO SELL"
+sellToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+sellToggle.TextSize = 12
+sellToggle.Font = Enum.Font.GothamBold
+sellToggle.Parent = tab2
+
+local sellStatus = Instance.new("TextLabel")
+sellStatus.Size = UDim2.new(1, -10, 0, 18)
+sellStatus.Position = UDim2.new(0, 5, 0, 45)
+sellStatus.BackgroundTransparency = 1
+sellStatus.Text = "Status: OFF"
+sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+sellStatus.TextSize = 11
+sellStatus.Font = Enum.Font.GothamSemibold
+sellStatus.TextXAlignment = Enum.TextXAlignment.Left
+sellStatus.Parent = tab2
+
+local toolStatus = Instance.new("TextLabel")
+toolStatus.Size = UDim2.new(1, -10, 0, 16)
+toolStatus.Position = UDim2.new(0, 5, 0, 65)
+toolStatus.BackgroundTransparency = 1
+toolStatus.Text = "Tool: None"
+toolStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+toolStatus.TextSize = 10
+toolStatus.Font = Enum.Font.Gotham
+toolStatus.TextXAlignment = Enum.TextXAlignment.Left
+toolStatus.Parent = tab2
+
+local promptStatus = Instance.new("TextLabel")
+promptStatus.Size = UDim2.new(1, -10, 0, 16)
+promptStatus.Position = UDim2.new(0, 5, 0, 83)
+promptStatus.BackgroundTransparency = 1
+promptStatus.Text = "Prompt: None"
+promptStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+promptStatus.TextSize = 10
+promptStatus.Font = Enum.Font.Gotham
+promptStatus.TextXAlignment = Enum.TextXAlignment.Left
+promptStatus.Parent = tab2
+
+local sellKeyLabel = Instance.new("TextLabel")
+sellKeyLabel.Size = UDim2.new(1, -10, 0, 14)
+sellKeyLabel.Position = UDim2.new(0, 5, 0, 102)
+sellKeyLabel.BackgroundTransparency = 1
+sellKeyLabel.Text = "G toggle"
+sellKeyLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
+sellKeyLabel.TextSize = 9
+sellKeyLabel.Font = Enum.Font.Gotham
+sellKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+sellKeyLabel.Parent = tab2
+
+-- ============================================
+-- TAB 3: MONEY
+-- ============================================
+local tab3 = Instance.new("Frame")
+tab3.Size = UDim2.new(1, 0, 1, 0)
+tab3.BackgroundTransparency = 1
+tab3.Visible = false
+tab3.Parent = contentFrame
 
 local moneyLabel = Instance.new("TextLabel")
 moneyLabel.Size = UDim2.new(1, -10, 0, 16)
@@ -256,7 +327,7 @@ moneyLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 moneyLabel.TextSize = 9
 moneyLabel.Font = Enum.Font.GothamBold
 moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
-moneyLabel.Parent = tab2
+moneyLabel.Parent = tab3
 
 local nameBox = Instance.new("TextBox")
 nameBox.Size = UDim2.new(1, -10, 0, 22)
@@ -269,7 +340,7 @@ nameBox.TextSize = 11
 nameBox.Font = Enum.Font.Gotham
 nameBox.TextXAlignment = Enum.TextXAlignment.Left
 nameBox.PlaceholderText = "Nama Leaderstat"
-nameBox.Parent = tab2
+nameBox.Parent = tab3
 
 local amountLabel = Instance.new("TextLabel")
 amountLabel.Size = UDim2.new(1, -10, 0, 14)
@@ -280,7 +351,7 @@ amountLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 amountLabel.TextSize = 9
 amountLabel.Font = Enum.Font.GothamBold
 amountLabel.TextXAlignment = Enum.TextXAlignment.Left
-amountLabel.Parent = tab2
+amountLabel.Parent = tab3
 
 local amountBox = Instance.new("TextBox")
 amountBox.Size = UDim2.new(1, -10, 0, 22)
@@ -293,48 +364,22 @@ amountBox.TextSize = 11
 amountBox.Font = Enum.Font.Gotham
 amountBox.TextXAlignment = Enum.TextXAlignment.Left
 amountBox.PlaceholderText = "Jumlah"
-amountBox.Parent = tab2
+amountBox.Parent = tab3
 
--- Remote Selector Dropdown (simulasi)
-local remoteLabel = Instance.new("TextLabel")
-remoteLabel.Size = UDim2.new(1, -10, 0, 14)
-remoteLabel.Position = UDim2.new(0, 5, 0, 88)
-remoteLabel.BackgroundTransparency = 1
-remoteLabel.Text = "REMOTE TARGET"
-remoteLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-remoteLabel.TextSize = 9
-remoteLabel.Font = Enum.Font.GothamBold
-remoteLabel.TextXAlignment = Enum.TextXAlignment.Left
-remoteLabel.Parent = tab2
-
-local remoteBox = Instance.new("TextBox")
-remoteBox.Size = UDim2.new(1, -10, 0, 22)
-remoteBox.Position = UDim2.new(0, 5, 0, 104)
-remoteBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-remoteBox.BorderSizePixel = 0
-remoteBox.Text = "Auto Detect"
-remoteBox.TextColor3 = Color3.fromRGB(200, 200, 200)
-remoteBox.TextSize = 10
-remoteBox.Font = Enum.Font.Gotham
-remoteBox.TextXAlignment = Enum.TextXAlignment.Left
-remoteBox.PlaceholderText = "Nama Remote (kosongkan untuk auto)"
-remoteBox.Parent = tab2
-
--- Tombol ADD MONEY SERVER SIDE
 local addBtnServer = Instance.new("TextButton")
-addBtnServer.Size = UDim2.new(1, -20, 0, 30)
-addBtnServer.Position = UDim2.new(0, 10, 0, 132)
+addBtnServer.Size = UDim2.new(1, -20, 0, 28)
+addBtnServer.Position = UDim2.new(0, 10, 0, 90)
 addBtnServer.BackgroundColor3 = Color3.fromRGB(200, 80, 0)
 addBtnServer.BorderSizePixel = 0
 addBtnServer.Text = "ADD MONEY (SERVER)"
 addBtnServer.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtnServer.TextSize = 12
+addBtnServer.TextSize = 10
 addBtnServer.Font = Enum.Font.GothamBold
-addBtnServer.Parent = tab2
+addBtnServer.Parent = tab3
 
 local moneyStatus = Instance.new("TextLabel")
-moneyStatus.Size = UDim2.new(1, -10, 0, 30)
-moneyStatus.Position = UDim2.new(0, 5, 0, 168)
+moneyStatus.Size = UDim2.new(1, -10, 0, 40)
+moneyStatus.Position = UDim2.new(0, 5, 0, 124)
 moneyStatus.BackgroundTransparency = 1
 moneyStatus.Text = "Ready"
 moneyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -342,7 +387,7 @@ moneyStatus.TextSize = 9
 moneyStatus.Font = Enum.Font.Gotham
 moneyStatus.TextXAlignment = Enum.TextXAlignment.Left
 moneyStatus.TextWrapped = true
-moneyStatus.Parent = tab2
+moneyStatus.Parent = tab3
 
 -- ============================================
 -- TAB SWITCHING
@@ -350,9 +395,11 @@ moneyStatus.Parent = tab2
 local function switchTab(tabId)
     tab1.Visible = false
     tab2.Visible = false
+    tab3.Visible = false
     
     if tabId == "tab1" then tab1.Visible = true end
     if tabId == "tab2" then tab2.Visible = true end
+    if tabId == "tab3" then tab3.Visible = true end
     
     for id, data in pairs(tabs) do
         if id == tabId then
@@ -376,52 +423,9 @@ end
 switchTab("tab1")
 
 -- ============================================
--- DRAG SYSTEM
--- ============================================
-local dragging = false
-local dragStart = nil
-local startPos = nil
-
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-    end
-end)
-
-titleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- ============================================
--- MINIMIZE / CLOSE / OPEN
+-- MINIMIZE (tanpa close)
 -- ============================================
 local isMinimized = false
-
-closeBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-    openBtn.Visible = true
-end)
-
-openBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = true
-    openBtn.Visible = false
-end)
 
 minBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -431,7 +435,7 @@ minBtn.MouseButton1Click:Connect(function()
         contentFrame.Visible = false
         tabContainer.Visible = false
     else
-        mainFrame.Size = UDim2.new(0, 280, 0, 260)
+        mainFrame.Size = UDim2.new(0, 280, 0, 280)
         minBtn.Text = "−"
         contentFrame.Visible = true
         tabContainer.Visible = true
@@ -544,12 +548,204 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ============================================
--- ADD MONEY SERVER SIDE - REAL
+-- AUTO SELL LOGIC
+-- ============================================
+local autoSellRunning = false
+local autoSellConnection = nil
+local currentTool = nil
+local currentPrompt = nil
+
+-- Cari semua ProximityPrompt dengan ActionText mengandung "sell" / "jual"
+local function findSellPrompts()
+    local prompts = {}
+    local function search(obj)
+        for _, child in ipairs(obj:GetChildren()) do
+            if child:IsA("ProximityPrompt") then
+                local action = child.ActionText or ""
+                if string.find(string.lower(action), "sell") or 
+                   string.find(string.lower(action), "jual") then
+                    table.insert(prompts, child)
+                end
+            end
+            search(child)
+        end
+    end
+    search(Workspace)
+    return prompts
+end
+
+-- Ambil random tool dari backpack atau character
+local function getRandomTool()
+    local tools = {}
+    
+    -- Cek character
+    if character then
+        for _, child in ipairs(character:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
+        end
+    end
+    
+    -- Cek backpack
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, child in ipairs(backpack:GetChildren()) do
+            if child:IsA("Tool") then
+                table.insert(tools, child)
+            end
+        end
+    end
+    
+    if #tools > 0 then
+        return tools[math.random(1, #tools)]
+    end
+    return nil
+end
+
+-- Equip tool
+local function equipTool(tool)
+    if not tool then return false end
+    
+    -- Jika tool sudah di character, coba pindah ke backpack dulu
+    if tool.Parent == character then
+        tool.Parent = player:FindFirstChild("Backpack") or player
+        task.wait(0.1)
+    end
+    
+    -- Parent ke character untuk equip
+    tool.Parent = character
+    return true
+end
+
+-- Get current equipped tool
+local function getEquippedTool()
+    if not character then return nil end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            return child
+        end
+    end
+    return nil
+end
+
+-- Main Auto Sell Loop
+local function autoSellLoop()
+    if not autoSellRunning then return end
+    
+    -- Step 1: Cek tangan kosong
+    local equipped = getEquippedTool()
+    
+    if not equipped then
+        -- Tangan kosong, ambil random tool
+        local randomTool = getRandomTool()
+        if randomTool then
+            equipTool(randomTool)
+            currentTool = randomTool
+            toolStatus.Text = "Tool: " .. randomTool.Name
+            toolStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+            task.wait(0.3)
+        else
+            toolStatus.Text = "Tool: No tool available"
+            toolStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return
+        end
+    else
+        currentTool = equipped
+        toolStatus.Text = "Tool: " .. equipped.Name
+        toolStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+    end
+    
+    -- Step 2: Cari ProximityPrompt dengan ActionText "sell"/"jual"
+    local prompts = findSellPrompts()
+    
+    if #prompts > 0 then
+        for _, prompt in ipairs(prompts) do
+            currentPrompt = prompt
+            
+            -- Ubah HoldDuration ke 0
+            pcall(function()
+                prompt.HoldDuration = 0
+            end)
+            
+            promptStatus.Text = "Prompt: " .. prompt.ActionText .. " (HoldDuration=0)"
+            promptStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            -- Spam InputHold / InputRelease
+            local maxSpam = 3
+            for i = 1, maxSpam do
+                if not autoSellRunning then break end
+                
+                pcall(function()
+                    prompt:InputHold()
+                    task.wait(0.05)
+                    prompt:InputRelease()
+                end)
+                
+                task.wait(0.1)
+            end
+        end
+    else
+        promptStatus.Text = "Prompt: No sell prompt found"
+        promptStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end
+
+local function toggleAutoSell()
+    autoSellRunning = not autoSellRunning
+    
+    if autoSellRunning then
+        sellToggle.Text = "⏹ STOP SELL"
+        sellToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        sellStatus.Text = "Status: ACTIVE"
+        sellStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        currentTool = nil
+        currentPrompt = nil
+        
+        autoSellConnection = RunService.Heartbeat:Connect(function()
+            if autoSellRunning then
+                autoSellLoop()
+                task.wait(0.5)
+            end
+        end)
+        
+        -- Jalankan sekali langsung
+        task.wait(0.3)
+        autoSellLoop()
+    else
+        sellToggle.Text = "▶ AUTO SELL"
+        sellToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        sellStatus.Text = "Status: OFF"
+        sellStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+        toolStatus.Text = "Tool: None"
+        toolStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+        promptStatus.Text = "Prompt: None"
+        promptStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+        if autoSellConnection then
+            autoSellConnection:Disconnect()
+            autoSellConnection = nil
+        end
+    end
+end
+
+sellToggle.MouseButton1Click:Connect(toggleAutoSell)
+
+-- Keybind G untuk Auto Sell
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        toggleAutoSell()
+    end
+end)
+
+-- ============================================
+-- ADD MONEY SERVER SIDE
 -- ============================================
 local function addMoneyServer()
     local statName = nameBox.Text
     local amount = tonumber(amountBox.Text) or 0
-    local remoteName = remoteBox.Text
     
     if statName == "" or amount <= 0 then
         moneyStatus.Text = "ERROR: Nama/Jumlah tidak valid"
@@ -557,27 +753,7 @@ local function addMoneyServer()
         return
     end
     
-    local targetRemote = nil
-    local remoteType = nil
-    
-    -- Cari remote berdasarkan nama yang dimasukkan
-    if remoteName ~= "" and remoteName ~= "Auto Detect" then
-        for _, child in ipairs(ReplicatedStorage:GetChildren()) do
-            if child.Name == remoteName then
-                if child:IsA("RemoteEvent") then
-                    targetRemote = child
-                    remoteType = "Event"
-                elseif child:IsA("RemoteFunction") then
-                    targetRemote = child
-                    remoteType = "Function"
-                end
-                break
-            end
-        end
-    else
-        -- Auto detect
-        targetRemote, remoteType = findBestRemote()
-    end
+    local targetRemote, remoteType = findBestRemote()
     
     if not targetRemote then
         moneyStatus.Text = "ERROR: Tidak ada Remote ditemukan"
@@ -585,9 +761,6 @@ local function addMoneyServer()
         return
     end
     
-    -- ============================================
-    -- EKSEKUSI SERVER SIDE
-    -- ============================================
     local success = false
     local result = nil
     
@@ -600,7 +773,6 @@ local function addMoneyServer()
             return targetRemote:InvokeServer(statName, amount, player)
         end)
     else
-        -- Fallback: coba FireServer dulu
         success, result = pcall(function()
             targetRemote:FireServer(statName, amount, player)
         end)
@@ -622,30 +794,16 @@ end
 
 addBtnServer.MouseButton1Click:Connect(addMoneyServer)
 
--- ============================================
--- AUTO DETECT REMOTE DI TAB MONEY
--- ============================================
-local function updateRemoteList()
-    local best, typ = findBestRemote()
-    if best then
-        remoteBox.Text = best.Name .. " (" .. typ .. ")"
-        remoteBox.TextColor3 = Color3.fromRGB(100, 255, 100)
-    else
-        remoteBox.Text = "No Remote Found"
-        remoteBox.TextColor3 = Color3.fromRGB(255, 100, 100)
-    end
+-- Auto detect remote display
+task.wait(1)
+local best, typ = findBestRemote()
+if best then
+    moneyStatus.Text = "Remote: " .. best.Name .. " (" .. typ .. ") | Ready"
+    moneyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+else
+    moneyStatus.Text = "No Remote Found"
+    moneyStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
 end
 
-task.wait(1)
-updateRemoteList()
-
--- Refresh setiap 5 detik
-game:GetService("RunService").Stepped:Connect(function()
-    if tab2.Visible then
-        -- Update status remote jika visible
-    end
-end)
-
-print("Catch A Anomali Fish v6.0 - Server Side Money Loaded")
-print("Remote Events found: " .. #remoteEvents)
-print("Remote Functions found: " .. #remoteFunctions)
+print("Catch A Anomali Fish v7.0 - Loaded")
+print("F = Auto Fish | G = Auto Sell")
